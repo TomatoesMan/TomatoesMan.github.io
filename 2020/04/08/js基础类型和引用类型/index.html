@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="theme-color" content=#58b77a>
-  <title>Tomato&#39;s blog</title>
+  <title>js基础类型和引用类型 | Tomato&#39;s blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="author" content="TomatoMan">
   <meta name="keywords" content="">
@@ -62,30 +62,27 @@
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
 <meta name="generator" content="Hexo 4.2.0"></head>
 <body>
-<div id="page">
+<div class="single">
 
-<div id="lx-aside" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/cover.jpeg)">
+<div id="page">
+<div id="lx-aside" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/post_cover.jpeg)" data-stellar-background-ratio="0.5">
   <div class="overlay">
-  <div class="featured">
+  <div class="page-title">
     <div class="avatar"><a href="/"><img src="/images/avatar.jpeg"></a></div>
-    <span>TomatoMan</span>
-    <h1>Tomato's blog</h1>
+    <span>2020-04-08</span>
+    <h2>js基础类型和引用类型</h2>
     
     <div class="social-links">
     <a href="hhttps://github.com/TomatoesMan/TomatoesMan.github.io" target="_blank"><i class="fa fa-github fa-fw"></i></a>
+</div></div>
 </div>
-  </div>
-  </div>
 </div>
 
 <div id="lx-main-content">
   <div class="lx-post">
-
-  <div class="lx-entry padding">
-    <div>
-      <h2 class="title"><a href="/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/">js基础类型和引用类型</a></h2>
-      <span class="lx-post-detail"><i class="fa fa-calendar-o"></i> 2020-04-08</span>
-      <p><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p>
+    <div class="lx-entry padding">
+      <div>
+        <p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p>
 <h2 id="1、什么是基础类型（值类型、原始类型）"><a href="#1、什么是基础类型（值类型、原始类型）" class="headerlink" title="1、什么是基础类型（值类型、原始类型）"></a>1、什么是基础类型（值类型、原始类型）</h2><p>保存在栈中的类型就是基础类型，原因是基础类型存储的空间很小，存放在栈中方便查找，且不易于改变</p>
 <h3 id="js-中的基础类型（值类型、原始类型）有哪些"><a href="#js-中的基础类型（值类型、原始类型）有哪些" class="headerlink" title="js 中的基础类型（值类型、原始类型）有哪些"></a>js 中的基础类型（值类型、原始类型）有哪些</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Undefined、Null、<span class="built_in">Boolean</span>、<span class="built_in">Number</span>、<span class="built_in">String</span>、<span class="built_in">Symbol</span>（ES6中新加类型）</span><br></pre></td></tr></table></figure>
 
@@ -126,13 +123,41 @@
 
 <p>Object.prototype.toString 是 Object 原型上的方法，返回的是类型字符串，才是我们想要的结果</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Object</span>.prototype.toString(&#123;&#125;); <span class="comment">//"[object Object]"</span></span><br></pre></td></tr></table></figure>
-</p>
-      <div class="post-button"><a class="btn" href="/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/" rel="noopener"><i class="fa fa-angle-double-right fa-fw"></i>阅读更多</a></div>
+
+      </div>
     </div>
   </div>
+</div>
+<div class="lx-navigation">
+	<div class="lx-cover prev lx-cover-sm" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/footer-l.jpeg)">
+		<div class="overlay"></div>
+		<a class="copy" href="#">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Next</span>
+						<h3>没有更新的文章</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+        <div class="lx-cover next lx-cover-sm" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/footer-r.jpeg)">
+		<div class="overlay"></div>
+		<a class="copy" href="#">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Prev</span>
+						<h3>没有更早的文章</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+</div>
 
-
-
+</div>
 
 <footer>
   <div>
@@ -140,8 +165,6 @@
   </div>
 </footer>
 
-  </div>
-</div>
 </div>
 
 <button class="hamburger hamburger--arrow-r" type="button">
