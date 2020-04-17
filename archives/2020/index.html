@@ -15,13 +15,13 @@
     theme: 'lx',
     version: '0.3.9',
     localsearch:{
-      "enable": false,
+      "enable": true,
       "trigger": "auto",
       "top_n_per_article": 1,
       "unescape": false,
       "preload": false
       },
-    path: 'null'
+    path: 'search.xml'
   };
 </script>
 
@@ -64,6 +64,23 @@
 <body>
 
 <div id="page">
+<a href="javascript:;" class="popup-trigger"><i class="menu-item-icon fa fa-search fa-fw"></i></a>
+<div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索文章" spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
 
 <div id="lx-aside" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/cover.jpeg)">
   <div class="overlay">
@@ -85,7 +102,7 @@
     <div class="lx-entry padding"><div>
     <span class="lx-post-detail">2020-04-08</span>
     <h2 class="title"><a href="/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/">js基础类型和引用类型</a></h2>
-    <p></p></div></div>
+    <p><i class="fa fa-tag"></i><a class="tag-link" href="/tags/javascript/" rel="tag">javascript</a> <i class="fa fa-tag"></i><a class="tag-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></p></div></div>
 
 
 <footer>
@@ -170,6 +187,7 @@
 	});
 }());
 </script>
+<script src="//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/js/local.search.js"></script>
 
 
 </body>
