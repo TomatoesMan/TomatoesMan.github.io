@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="theme-color" content=#58b77a>
+  <title>执行上下文 | Tomato&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="TomatoMan">
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+  <script id="hexo-configurations">
+  var CONFIG = {
+    root: '/',
+    theme: 'lx',
+    version: '0.3.9',
+    localsearch:{
+      "enable": true,
+      "trigger": "auto",
+      "top_n_per_article": 1,
+      "unescape": false,
+      "preload": false
+      },
+    path: 'search.xml'
+  };
+</script>
+
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/css/main.min.css">
+  <style type="text/css">
+    pre,
+    code {
+      font-family: 'Fira Code', monospace;
+    }
+    html {
+      font-family: sans-serif;
+    }
+    body {
+      font-family: sans-serif;
+    }
+    h1, h2, h3, h4, h5, figure {
+      font-family: sans-serif;
+    }
+    .menu-container{
+      font-family: sans-serif;
+    }
+  </style>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/js/jquery.jside.menu.js"></script>
+	<script>
+	$(document).ready(function(){
+	$(".menu-container").jSideMenu({
+	    jSidePosition: "position-right",
+	    jSideSticky: true,
+	    jSideSkin: "greenish",
+	     });
+	}); 
+	</script>
+  
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Fira Code:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4/css/font-awesome.min.css">
+<meta name="generator" content="Hexo 4.2.0"></head>
+<body>
+<div class="single">
+<a href="javascript:;" class="popup-trigger"><i class="menu-item-icon fa fa-search fa-fw"></i></a>
+<div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索文章" spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+<div id="page">
+<div id="lx-aside" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/post_cover.jpeg)" data-stellar-background-ratio="0.5">
+  <div class="overlay">
+  <div class="page-title">
+    <div class="avatar"><a href="/"><img src="/images/avatar.jpeg"></a></div>
+    <span>2020-05-29</span>
+    <h2>执行上下文</h2>
+    <div class="tags"><i class="fa fa-tag"></i><a class="tag-link" href="/tags/javascript/" rel="tag">javascript</a> <i class="fa fa-tag"></i><a class="tag-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></div>
+    <div class="social-links">
+    <a href="https://github.com/TomatoesMan/TomatoesMan.github.io" target="_blank"><i class="fa fa-github fa-fw"></i></a>
+</div></div>
+</div>
+</div>
+
+<div id="lx-main-content">
+  <div class="lx-post">
+    <div class="lx-entry padding">
+      <div>
+        <p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p>
+<h2 id="1、执行上下文"><a href="#1、执行上下文" class="headerlink" title="1、执行上下文"></a>1、执行上下文</h2><p>执行上下文就是当前 JavaScript 代码被解析和执行时所在环境的抽象概念， JavaScript 中运行任何的代码都是在执行上下文中运行。</p>
+<h4 id="执行上下文类型"><a href="#执行上下文类型" class="headerlink" title="执行上下文类型"></a>执行上下文类型</h4><p>阅文前端团队翻译的《理解 Javascript 执行上下文和执行栈》中所说：</p>
+<ol>
+<li>全局执行上下文：这是默认的、最基础的执行上下文。不在任何函数中的代码都位于全局执行上下文中。它做了两件事：1. 创建一个全局对象，在浏览器中这个全局对象就是 window 对象。2. 将 this 指针指向这个全局对象。一个程序中只能存在一个全局执行上下文。</li>
+<li>函数执行上下文：每次调用函数时，都会为该函数创建一个新的执行上下文。每个函数都拥有自己的执行上下文，但是只有在函数被调用的时候才会被创建。一个程序中可以存在任意数量的函数执行上下文。每当一个新的执行上下文被创建，它都会按照特定的顺序执行一系列步骤，具体过程将在本文后面讨论。</li>
+<li>eval 函数执行上下文：运行在 eval 函数中的代码也获得了自己的执行上下文。</li>
+</ol>
+<h2 id="2、执行上下文栈"><a href="#2、执行上下文栈" class="headerlink" title="2、执行上下文栈"></a>2、执行上下文栈</h2><p>执行栈，在其他编程语言中也被叫做调用栈，具有 LIFO（后进先出）结构，用于存储在代码执行期间创建的所有执行上下文，这与堆栈中栈的原理类似。</p>
+<p>当 JS 引擎开始编译 JS 代码时，会创建一个全局执行上下文压入到执行上下文栈的最顶层，当调用一个函数时，就会创建一个函数执行上下文压入执行上下文栈的最顶层。</p>
+<p>当最新的函数执行完毕后，其执行上下文将会从执行上下文栈弹出，然后将执行下一个函数。</p>
+<p>我们可以将执行上下文栈模拟为一个空数组：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stack = [];</span><br></pre></td></tr></table></figure>
+
+<p>通过下个例子来理解一下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo1</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(a);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo2</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  foo1();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo3</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  foo2();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">foo3();</span><br></pre></td></tr></table></figure>
+
+<p>当执行上述例子时，先将全局执行上下文推入执行上下文栈</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stack = [globalContext];</span><br></pre></td></tr></table></figure>
+
+<p>当函数调用的时候开始执行函数上下文：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">stack.push(<span class="xml"><span class="tag">&lt;<span class="name">foo3</span>&gt;</span>, functionContext);</span></span><br><span class="line"><span class="xml">// foo3函数中调用了foo2</span></span><br><span class="line">stack.push(&lt;foo2&gt;, functionContext);</span><br><span class="line">// foo2函数中调用了foo1</span><br><span class="line">stack.push(&lt;foo1&gt;, functionContext);</span><br><span class="line">// foo1执行完毕</span><br><span class="line">stack.pop();</span><br><span class="line">// foo2执行完毕</span><br><span class="line">stack.pop();</span><br><span class="line">// foo1执行完毕</span><br><span class="line">stack.pop();</span><br><span class="line">// 之后再执行新的代码，但底层永远留有一个globalContext</span><br></pre></td></tr></table></figure>
+
+<h2 id="3、执行上下文的创建"><a href="#3、执行上下文的创建" class="headerlink" title="3、执行上下文的创建"></a>3、执行上下文的创建</h2><p>在执行上下文创建的时候，分为两个阶段：1、创建阶段 2、执行阶段</p>
+<h3 id="3-1、创建阶段"><a href="#3-1、创建阶段" class="headerlink" title="3.1、创建阶段"></a>3.1、创建阶段</h3><p>创建阶段有三个重要的属性：</p>
+<ol>
+<li>this</li>
+<li>词法环境（作用域链）</li>
+<li>变量环境</li>
+</ol>
+<h4 id="3-1-1、this"><a href="#3-1-1、this" class="headerlink" title="3.1.1、this"></a>3.1.1、this</h4><p>在全局上下文中，this 指向的是全局对象，在浏览器中，指向的是 window<br>在函数上下文中，this 指向的是函数的调用方，如果是对象调用该函数，则指向的是这个对象，否则 this 指向的是全局对象或者 undefined（严格模式）</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"Jack"</span>,</span><br><span class="line">  eat: <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="keyword">this</span>.name);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line">person.eat(); <span class="comment">// 此时的this指向person，因为是person调用的该函数</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br><span class="line">foo(); <span class="comment">// 此时的this指向window</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="3-1-2、词法环境（作用域链）"><a href="#3-1-2、词法环境（作用域链）" class="headerlink" title="3.1.2、词法环境（作用域链）"></a>3.1.2、词法环境（作用域链）</h4><p>词法环境是一个包含标识符变量映射的结构。（这里的标识符表示变量/函数的名称，变量是对实际对象【包括函数类型对象】或原始值的引用）</p>
+<p>词法环境包括两个部分：</p>
+<ol>
+<li>环境记录：存储变量和函数声明的实际位置</li>
+<li>对外部环境的引用：意味着可以访问其外部的词法变量</li>
+</ol>
+<p>在全局上下文中，对外环境的引用为 null，它拥有一个全局的对象（windowd 对象）以及其关联的属性和方法和用户自定义的全局变量。</p>
+<p>在函数上下文中，用户自定义的变量存储在环境记录中，对外部环境的引用可以是全局环境，也可以是包含内部函数的外部函数环境。另外在函数上下文创建时，在其环境记录中还会生成一个 arguments 对象，该对象包含了索引和传递给函数的参数之间的映射以及传递给函数的参数的长度（数量）。如下所示：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">add</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line">add(<span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line"><span class="comment">// arguments对象</span></span><br><span class="line">Arguments: &#123;<span class="number">0</span>: <span class="number">2</span>, <span class="number">1</span>: <span class="number">3</span>, <span class="attr">length</span>: <span class="number">2</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们以一个例子，并用伪代码来看一下在词法环境中 JS 内部都做了什么：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a,</span><br><span class="line">  b = <span class="number">1</span>;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line">foo(<span class="number">2</span>, <span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<p>我们用 ER 代表环境记录，用 outer 代表对外部环境的引用，伪代码写成：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">全局上下文：</span><br><span class="line">GlobalExectionContext = &#123;</span><br><span class="line">  ER: &#123;</span><br><span class="line">    a,</span><br><span class="line">    b,</span><br><span class="line">    foo</span><br><span class="line">  &#125;,</span><br><span class="line">  outer: <span class="literal">null</span></span><br><span class="line">&#125;</span><br><span class="line">当运行函数时，会产生函数上下文：</span><br><span class="line">FunctionExectionContext = &#123;</span><br><span class="line">  ER: &#123;</span><br><span class="line">    <span class="built_in">arguments</span>: &#123;</span><br><span class="line">      <span class="number">0</span>: <span class="number">2</span>,</span><br><span class="line">      <span class="number">1</span>: <span class="number">3</span>,</span><br><span class="line">      length: <span class="number">2</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;,</span><br><span class="line">  outer: <span class="xml"><span class="tag">&lt;<span class="name">GlobalExectionContext</span>&gt;</span></span></span><br><span class="line"><span class="xml">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>在 ES8 中规定环境记录同样拥有两个类型：</p>
+<ol>
+<li>声明性环境记录：存储变量、函数和参数。一个函数环境包含声明性环境记录。</li>
+<li>对象环境记录：用于定义在全局执行上下文中出现的变量和函数的关联。全局环境包含对象环境记录。</li>
+</ol>
+<h4 id="3-1-3、变量环境"><a href="#3-1-3、变量环境" class="headerlink" title="3.1.3、变量环境"></a>3.1.3、变量环境</h4><p>变量环境也是一个词法环境，所以他包含了词法环境的所有特性，在 ES6 中变量环境包括两个一个是 LexicalEnvironment 组件另一个是 VariableEnvironment 组件，他俩的区别在于前者用于存储函数声明和变量（ let 和 const ）绑定，而后者仅用于存储变量（ var ）绑定。</p>
+<p>这样我们再举例来看一下 JS 内部究竟干了什么：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">const</span> b = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">var</span> c;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">add</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line">c = add(<span class="number">1</span>, <span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<p>我们同样用伪代码来模拟一下吗，用 LE 代表 LexicalEnvironment，用 VE 代表 VariableEnvironment：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">全局上下文：</span><br><span class="line">GlobalExectionContext = &#123;</span><br><span class="line">  <span class="keyword">this</span>: <span class="xml"><span class="tag">&lt;<span class="name">Global</span> <span class="attr">Object</span>&gt;</span>,</span></span><br><span class="line"><span class="xml">  LE: &#123;</span></span><br><span class="line"><span class="xml">    ER: &#123;</span></span><br><span class="line">      a: &lt;uninitialized&gt;,</span><br><span class="line">      b: &lt;uninitialized&gt;,</span><br><span class="line">      add: &lt;func&gt;</span><br><span class="line">    &#125;,</span><br><span class="line">    outer: null,</span><br><span class="line">  &#125;,</span><br><span class="line">  VE: &#123;</span><br><span class="line">    ER: &#123;</span><br><span class="line">      c: undefined</span><br><span class="line">    &#125;,</span><br><span class="line">    outer: null,</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">当调用add时，生成函数上下文：</span><br><span class="line">FunctionExectionContext = &#123;</span><br><span class="line">  this: &lt;Global Object&gt;,</span><br><span class="line">  LE: &#123;</span><br><span class="line">    ER: &#123;</span><br><span class="line">     arguments: &#123;</span><br><span class="line">        0: 1,</span><br><span class="line">        1: 3,</span><br><span class="line">        length: 2</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    outer: &lt;GlobalExectionContext&gt;,</span><br><span class="line">  &#125;,</span><br><span class="line">  VE: &#123;</span><br><span class="line">    ER: null,</span><br><span class="line">    outer: &lt;GlobalExectionContext&gt;,</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时你一定会对 let、const、var 的值有一个疑惑，那是因为在创建阶段的时候，代码会被扫描和解析成变量和函数声明，函数声明存储在环境中，而 var 会被定义为 undefined，let 和 const 会被定位为 uninitialized，这就是为什么你可以在声明之前访问 var 定义的变量（尽管是 undefined ），但如果在声明之前访问 let 和 const 定义的变量就会提示引用错误的原因，这个错误就是暂时性死区或者叫做临时死亡（TDZ），原因就是在访问一个已经声明但没有初始化的变量。</p>
+<h3 id="3-2、执行阶段"><a href="#3-2、执行阶段" class="headerlink" title="3.2、执行阶段"></a>3.2、执行阶段</h3><p>在此阶段，完成对所有变量的分配，最后执行代码。<br>注：在执行阶段，如果 Javascript 引擎在源代码中声明的实际位置找不到 let 变量的值，那么将为其分配 undefined 值。</p>
+<p>这篇查阅了很多相关资料，但是觉得很多还是理解的不是很透彻，今后有时间会继续补充，也希望大家能多给些评价。</p>
+<p>参考：<br><a href="https://juejin.im/post/5bdfd3e151882516c6432c32" target="_blank" rel="noopener">【译】理解 Javascript 执行上下文和执行栈</a></p>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div class="lx-navigation">
+	<div class="lx-cover prev lx-cover-sm" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/footer-l.jpeg)">
+		<div class="overlay"></div>
+		<a class="copy" href="#">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Next</span>
+						<h3>没有更新的文章</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+        <div class="lx-cover next lx-cover-sm" style="background-image: url(//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/images/footer-r.jpeg)">
+		<div class="overlay"></div>
+		<a class="copy" href="/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/">
+			<div class="display-t">
+				<div class="display-tc">
+					<div>
+						<span>Prev</span>
+						<h3>作用域</h3>
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+</div>
+
+</div>
+<div class="comment"><div id="comments"></div></div>
+<footer>
+  <div>
+  Copyright &copy; 2019.<a href="/">Tomato's blog</a><br>Powered by <a href="https://hexo.io" target="_blank">Hexo</a> | Theme <a href="https://lx.js.org" target="_blank">Lx</a><br>
+  </div>
+</footer>
+
+</div>
+
+<button class="hamburger hamburger--arrow-r" type="button">
+    <div class="hamburger-box">
+      <div class="hamburger-inner"></div>
+    </div>
+</button> 
+<div class="menu visibility">
+  <div class="menu-head">
+    <span class="layer">
+      <div class="col">
+        <div class="row for-pic">
+          <div class="profile-pic">
+            <a href="/"><img src="/images/avatar.jpeg" alt="TomatoMan"/></a>
+          </div>
+        </div>
+        <div class="row for-name">
+          <p>TomatoMan</p>
+          <span class="tagline">从入门到放弃!</span>
+        </div>
+      </div>
+    </span>
+  </div>
+  <nav class="menu-container">
+  <ul class="menu-items">
+    <li><a href="/"><i class="fa fa-home fa-fw"></i>首页</a></li>
+    <li><a href="/archives/"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+    
+    <li class="has-sub"><span class="dropdown-heading">
+      <i class="fa fa-bookmark fa-fw"></i>页面</span>
+        <ul>
+          <li><a href="/guestbook/">Guestbook</a></li>
+        <li><a href="/about/">关于</a></li>
+        </ul>
+    </li>
+    <li class="has-sub"><span class="dropdown-heading">
+      <i class="fa fa-link fa-fw"></i>友链</span>
+        <ul>
+          <li> <a href="https://github.com/TomatoesMan/TomatoesMan.github.io" target="_blank">GitHub</a></li>
+        </ul>
+    </li>
+  </ul>
+  </nav>
+</div>
+
+<div class="gototop js-top">
+  <a href="#" class="js-gotop"><i class="fa fa-arrow-up"></i></a>
+</div>
+<script src="//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/js/jquery.easing.min.js"></script>
+<script>
+(function () {
+	"use strict";
+	var goToTop = function() {
+		$(".js-gotop").on("click", function(event){
+			event.preventDefault();
+			$("html, body").animate({
+				scrollTop: $("html").offset().top
+			}, 500, "easeInOutExpo");
+			return false;
+		});
+		$(window).scroll(function(){
+			var $win = $(window);
+			if ($win.scrollTop() > 200) {
+				$(".js-top").addClass("active");
+			} else {
+				$(".js-top").removeClass("active");
+			}
+		});
+	};
+	$(function(){
+		goToTop();
+	});
+}());
+</script>
+<script src="//cdn.jsdelivr.net/npm/theme-lx@0.3.9/source/js/local.search.js"></script>
+<script src="//cdn.jsdelivr.net/npm/valine@1.3.10/dist/Valine.min.js"></script>
+<script>
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '2mzBQU4naKejVfCycUEuQ0Wt-gzGzoHsz',
+    appKey: 'MGYpB1DSc73CrTco93WQDAAV',
+    placeholder: '此处留言',
+    avatar: 'identicon',
+    meta: guest,
+    pageSize: '10' || 10,
+    lang: 'zh-cn' || 'zh-cn'
+  });
+</script>
+
+</body>
+</html>
