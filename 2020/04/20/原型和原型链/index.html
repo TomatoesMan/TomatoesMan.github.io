@@ -121,12 +121,12 @@
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"o4"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> obj = <span class="built_in">Object</span>.create(person);</span><br></pre></td></tr></table></figure>
 
 <p>此方法是 ES6 新出的方法，此方法的好处可以理解为继承一个对象, 添加的属性是在原型下</p>
-<h2 id="2、原型、构造函数、实例、原型链"><a href="#2、原型、构造函数、实例、原型链" class="headerlink" title="2、原型、构造函数、实例、原型链"></a>2、原型、构造函数、实例、原型链</h2><p><img src="/.io//%E5%8E%9F%E5%9E%8B%E5%AF%B9%E8%B1%A1.png" alt="logo"></p>
+<h2 id="2、原型、构造函数、实例、原型链"><a href="#2、原型、构造函数、实例、原型链" class="headerlink" title="2、原型、构造函数、实例、原型链"></a>2、原型、构造函数、实例、原型链</h2><p><img src="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/%E5%8E%9F%E5%9E%8B%E5%AF%B9%E8%B1%A1.png" alt="logo"></p>
 <p>每个函数都有一个 prototype 的属性，每个函数通过 prototype 属性指向的对象，我们就称之为原型对象。<br>可能比较笼统，对原型也可以这样理解：每一个 JavaScript 对象(null 除外)在创建的时候就会与之关联另一个对象，这个对象就是我们所说的原型，每一个对象都会从原型”继承”属性。</p>
 <p>我们可以看看对象的 prototype 到底返回的是什么：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Person</span>(<span class="params"></span>) </span>&#123;&#125;</span><br><span class="line">Person.prototype;</span><br></pre></td></tr></table></figure>
 
-<p><img src="/.io//prototype.bmp" alt="logo"></p>
+<p><img src="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/prototype.bmp" alt="logo"></p>
 
       </div>
     </div>
