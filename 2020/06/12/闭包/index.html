@@ -1,182 +1,262 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="zh">
+    
 <head>
-  <meta charset="utf-8">
-  
-  <title>闭包 | Tomato&#39;s blog</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  
-  <meta name="keywords" content="前端javascript" />
-  
-  
-  
-  
-  <meta name="description" content="根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！">
-<meta property="og:type" content="article">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>闭包 - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！\n\n\n我们举个例子：\n12345678function scope() &#123;  let a = 1;  return function () &#123;    return a;  &#125;;&#125;let foo = scope();foo();\n\n根据前面所写的《执行上下文》中我们可以找到当解析代码时，会执行上下文栈，那我们按照执行上下文来看一下函数内部都做了哪些事情。\n1234567891011121314151617181920212223242526272829303132333435363738394041424344454647var scope = [];scope.push(globalContext = &#123;  this: &lt;Global Object&gt;,  LE: &#123;    ER: &#123;      scope: &lt;func&gt;,      foo: &lt;uninitialized&gt;,    &#125;,    outer: null  &#125;,  VR: &#123;    ER: &#123;&#125;,    outer: null  &#125;&#125;);scope.push(&lt;scope&gt;, scopefunctionContext = &#123;  this: &lt;Global Object&gt;,  LE: &#123;    ER: &#123;      arguments: &#123;        length: 0      &#125;    &#125;,    outer: &lt;globalContext&gt;  &#125;,  VR: &#123;    ER: &#123;&#125;,    outer: null  &#125;&#125;);scope.pop();scope.push(&lt;foo&gt;, foofunctionContext = &#123;  this: &lt;Global Object&gt;,  LE: &#123;    ER: &#123;      arguments: &#123;        length: 0      &#125;    &#125;,    outer: &lt;scopefunctionContext&gt;  &#125;,  VR: &#123;    ER: &#123;&#125;,    outer: null  &#125;&#125;);scope.pop();\n\n其实会很好奇，scope 函数执行完后明明已经在执行栈中移除了，为什么 foo 函数依旧能访问到其内部的变量。是因为 foo 函数的对外部引用是 scope 的词法环境，这个环境还没有消失。正因为 JS 有这个特点，所以才会生成闭包这个概念。\n下面举几个常用的面试题，来自《高程》：\n123456789101112function createFunctions() &#123;  var result = new Array();  for (var i = 0; i &lt; 10; i++) &#123;    result[i] = function () &#123;      console.log(i);    &#125;;  &#125;  return result;&#125;createFunctions().forEach((item) =&gt; &#123;  item();&#125;);\n\n运行上述之后，发现最后输出 10 个 10，为什么不是 0-9 呢？我们来分析一下，已 result[0]为例，在 result[0]运行之前，全局上下文是这样的：\n1234567891011121314151617var scope = [];scope.push(globalContext = &#123;  this: &lt;Global Object&gt;,  LE: &#123;    ER: &#123;      createFunctions: &lt;func&gt;,    &#125;,    outer: null  &#125;,  VR: &#123;    ER: &#123;      result: [....],      i: 10    &#125;,    outer: null  &#125;&#125;)\n\n当 result[0]运行时，它的函数上下文发生变化：\n1234567891011functionContext = &#123;  this: &lt;Global Object&gt;,   LE: &#123;    ER: &#123;&#125;,    outer: &lt;createFunctionsContext&gt;  &#125;,  VR: &#123;    ER: &#123;&#125;,    outer: &lt;createFunctionsContext&gt;  &#125;&#125;\n\n由于 result[0]中没有定义 i，所以就会向外部的词法环境中查找，最后找到 i，输出 10。\n如果想输出预期结果 0-9，高程中也给出了解决方案：\n1234567891011121314function createFunctions() &#123;  var result = new Array();  for (var i = 0; i &lt; 10; i++) &#123;    result[i] = (function (num) &#123;      return function () &#123;        console.log(num);      &#125;;    &#125;)(i);  &#125;  return result;&#125;createFunctions().forEach((item) =&gt; &#123;  item();&#125;);\n\n当再次执行 result[0]时，这个匿名函数的上下文：\n12345678910111213141516171819functionContext = &#123;  this: &lt;Global Object&gt;,   LE: &#123;    ER: &#123;      匿名function: &lt;func&gt;    &#125;,    outer: &lt;createFunctionsContext&gt;  &#125;,  VR: &#123;    ER: &#123;      arguments: &#123;        0: 0,        length: 1      &#125;,      num: 0    &#125;,    outer: &lt;createFunctionsContext&gt;  &#125;&#125;\n\n当匿名函数执行时：\n12345678910111213141516匿名functionContext = &#123;  this: &lt;Global Object&gt;,   LE: &#123;    ER: &#123;&#125;,    outer: &lt;functionContext&gt;  &#125;,  VR: &#123;    ER: &#123;      arguments: &#123;        length: 0      &#125;,      num: 0    &#125;,    outer: &lt;functionContext&gt;  &#125;&#125;\n\n同样其内部没有 num 变量，那它就会去外部的此法环境中查找，找到了 functionContext，functionContext 内部的 num 为 0，则输出 0。这样就完美解决了这个问题，也体现了闭包的作用，但现在有 let 了这种就用的很少了。闭包虽然能解决一些问题，但是尽量还是要少用闭包，因为其外部的词法环境已经销毁了，但其内部还在引用，这样的话闭包过多会造成内存泄漏，最简单直接的办法就是，执行完后设置为 null，这样就销毁了。\n","dateCreated":"2020-06-12T20:54:24+08:00","dateModified":"2020-06-25T20:03:59+08:00","datePublished":"2020-06-12T20:54:24+08:00","description":"根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！","headline":"闭包","image":["https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/","keywords":"前端, javascript","thumbnailUrl":"https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！">
+<meta property="og:type" content="blog">
 <meta property="og:title" content="闭包">
 <meta property="og:url" content="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
 <meta property="og:description" content="根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！">
 <meta property="og:locale" content="zh">
-<meta property="og:image" content="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/gallery/JavaScript.jpg">
 <meta property="article:published_time" content="2020-06-12T12:54:24.000Z">
-<meta property="article:modified_time" content="2020-06-25T08:06:05.267Z">
+<meta property="article:modified_time" content="2020-06-25T12:03:59.588Z">
 <meta property="article:author" content="TomatoMan">
 <meta property="article:tag" content="前端">
 <meta property="article:tag" content="javascript">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/gallery/JavaScript.jpg">
-  
-    <link rel="alternate" href="/atom.xml" title="Tomato&#39;s blog" type="application/atom+xml">
-  
-  <link rel="icon" href="/css/images/favicon.ico">
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Montserrat:700" rel="stylesheet" type="text/css">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic" rel="stylesheet" type="text/css">
-  <link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
-  <style type="text/css">
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/9749f0/00000000000000000001008f/27/l?subset_id=2&fvd=n5) format("woff2");font-weight:500;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/90cf9f/000000000000000000010091/27/l?subset_id=2&fvd=n7) format("woff2");font-weight:500;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/8a5494/000000000000000000013365/27/l?subset_id=2&fvd=n4) format("woff2");font-weight:lighter;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/d337d8/000000000000000000010095/27/l?subset_id=2&fvd=i4) format("woff2");font-weight:400;font-style:italic;}</style>
     
-  <link rel="stylesheet" id="athemes-headings-fonts-css" href="//fonts.googleapis.com/css?family=Yanone+Kaffeesatz%3A200%2C300%2C400%2C700&amp;ver=4.6.1" type="text/css" media="all">
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
 
-  <link rel="stylesheet" id="athemes-headings-fonts-css" href="//fonts.googleapis.com/css?family=Oswald%3A300%2C400%2C700&amp;ver=4.6.1" type="text/css" media="all">
-  
-<link rel="stylesheet" href="/css/style.css">
+    <!--STYLES END-->
+    
 
+    
 
-  
-<script src="/js/jquery-3.1.1.min.js"></script>
+    
+        
+    
+</head>
 
-
-  <!-- Bootstrap core CSS -->
-  <link rel="stylesheet" href="/css/bootstrap.css" >
-  <link rel="stylesheet" href="/css/fashion.css" >
-  <link rel="stylesheet" href="/css/glyphs.css" >
-
-<meta name="generator" content="Hexo 4.2.0"></head>
-
-
-
-  <body data-spy="scroll" data-target="#toc" data-offset="50">
-
-
-  
-  
-  <div class="site-header-image">
-    <img id="originBg" width="100%" alt="Hike News" src="">
-  </div>
-
-  <div id="header-blur" class="site-header-image blur" style="position: absolute; top:0; height: 207px; min-height: 207px; min-width: 100%;">
-    <img id="blurBg" width="100%" style="top: 96%" alt="Hike News" src="">
-  </div>
-
-  <script>
-        var imgUrls = "css/images/pose01.jpg,https://source.unsplash.com/collection/954550/1920x1080,https://source.unsplash.com/collection/954550/1920x1081".split(",");
-        var random = Math.floor((Math.random() * imgUrls.length ));
-        if (imgUrls[random].startsWith('http') || imgUrls[random].indexOf('://') >= 0) {
-          document.getElementById("originBg").src=imgUrls[random];
-          document.getElementById("blurBg").src=imgUrls[random];
-        } else {
-          document.getElementById("originBg").src='/' + imgUrls[random];
-          document.getElementById("blurBg").src='/' + imgUrls[random];
-        }
-    </script>
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
 
 
-
-
-<header id="allheader" class="site-header" role="banner" 
-   style="width: 100%; position: absolute; top:0; background: rgba(255,255,255,.8);"  >
-  <div class="clearfix container">
-      <div class="site-branding">
-
-          <h1 class="site-title">
-            
-              <a href="/" title="Tomato&#39;s blog" rel="home"> Tomato&#39;s blog </a>
-            
-          </h1>
-          
-          
-            
-          <nav id="main-navigation" class="main-navigation" role="navigation">
-            <a class="nav-open">Menu</a>
-            <a class="nav-close">Close</a>
-
-            <div class="clearfix sf-menu">
-              <ul id="main-nav" class="menu sf-js-enabled sf-arrows"  style="touch-action: pan-y;">
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/">Home</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/archives">Archives</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/categories">Categories</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/tags">Tags</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/about">About</a> </li>
-                    
-              </ul>
-            </div>
-          </nav>
-
-      </div>
-  </div>
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-icon open-algolia-search"
+                href="#search"
+                aria-label="Öffne den Link: /#search"
+            >
+        
+        
+            <i class="fa fa-search fa-lg"></i>
+        
+        </a>
+    
 </header>
 
+            <!-- Define author's picture -->
 
-  <div id="container">
-    <div id="wrap">
-            
-      <div id="content" class="outer">
+
+
         
-          <section id="main" style="float:none;"><article id="post-闭包" style="width: 66%; float:left;" class="article article-type-post" itemscope itemprop="blogPost" >
-  <div id="articleInner" class="clearfix post-1016 post type-post status-publish format-standard has-post-thumbnail hentry category-template-2 category-uncategorized tag-codex tag-edge-case tag-featured-image tag-image tag-template">
     
-<div class="article-gallery">
-  <div class="article-gallery-photos">
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="Lesen Sie mehr über den Autor"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="Bild des Autors"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
     
-      <a class="article-gallery-img fancybox" href="/gallery/JavaScript.jpg" rel="gallery_ckbuk2m9w000oocti7x448jds">
-        <img src="/gallery/JavaScript.jpg" itemprop="image">
-      </a>
     
-  </div>
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            闭包
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-06-12T20:54:24+08:00">
+	
+		    12 Jun 2020
+    	
+    </time>
+    
+        <span>in </span>
+        
+    <a class="category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
+
+
+    
 </div>
 
     
-      <header class="article-header">
-        
-  
-    <h1 class="thumb" class="article-title" itemprop="name">
-      闭包
-    </h1>
-  
+</div>
 
-      </header>
     
-    <div class="article-meta">
-      
-	<a href="/2020/06/12/%E9%97%AD%E5%8C%85/" class="article-date">
-	  <time datetime="2020-06-12T12:54:24.000Z" itemprop="datePublished">June 12, 2020</time>
-	</a>
-
-      
-	<span class="ico-folder"></span>
-    <a class="article-category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
- 
-      
-	<span id="busuanzi_container_page_pv">
-	  本文总阅读量<span id="busuanzi_value_page_pv"></span>次
-	</span>
-
-    </div>
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p>
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p>
 <a id="more"></a>
 
 <p>我们举个例子：</p>
@@ -207,213 +287,330 @@
 
 <p>同样其内部没有 num 变量，那它就会去外部的此法环境中查找，找到了 functionContext，functionContext 内部的 num 为 0，则输出 0。这样就完美解决了这个问题，也体现了闭包的作用，但现在有 let 了这种就用的很少了。闭包虽然能解决一些问题，但是尽量还是要少用闭包，因为其外部的词法环境已经销毁了，但其内部还在引用，这样的话闭包过多会造成内存泄漏，最简单直接的办法就是，执行完后设置为 null，这样就销毁了。</p>
 
-      
+            
+
+
+        </div>
     </div>
-    <footer class="entry-meta entry-footer">
-      
-	<span class="ico-folder"></span>
-    <a class="article-category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
-
-      
-  <span class="ico-tags"></span>
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/javascript/" rel="tag">javascript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></li></ul>
-
-      
+    <div id="post-footer" class="post-footer main-content-wrap">
         
-	<div id="comment">
-		<!-- 来必力City版安装代码 -->
-		<div id="lv-container" data-id="city" data-uid="MTAyMC8yOTQ4MS82MDQ5">
-		<script type="text/javascript">
-		   (function(d, s) {
-		       var j, e = d.getElementsByTagName(s)[0];
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">GETAGGT IN</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/javascript/" rel="tag">javascript</a> <a class="tag tag--primary tag--small t-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a>
 
-		       if (typeof LivereTower === 'function') { return; }
-
-		       j = d.createElement(s);
-		       j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
-		       j.async = true;
-
-		       e.parentNode.insertBefore(j, e);
-		   })(document, 'script');
-		</script>
-		<noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
-		</div>
-		<!-- City版安装代码已完成 -->
-	</div>
-
-
-
-      
-    </footer>
-    <hr class="entry-footer-hr">
-  </div>
-  
-    
-<nav id="article-nav">
-  
-    <a href="/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
+            </div>
         
-          call、apply和bind
         
-      </div>
-    </a>
-  
-  
-    <a href="/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">执行上下文</div>
-    </a>
-  
-</nav>
-
-  
-</article>
-
-<!-- Table of Contents -->
-
-  <aside id="sidebar">
-    <div id="toc" class="toc-article">
-    <strong class="toc-title">Contents</strong>
-    
-      <ol class="nav">None</ol>
-    
-    </div>
-  </aside>
-</section>
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                    data-tooltip="call、apply和bind"
+                    aria-label="FRÜHER: call、apply和bind"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">FRÜHER</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                    data-tooltip="执行上下文"
+                    aria-label="NÄCHSTER: 执行上下文"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">NÄCHSTER</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
         
-      </div>
-
-    </div>
-    <!-- <nav id="mobile-nav">
-  
-    <a href="/" class="mobile-nav-link">HOME</a>
-  
-    <a href="/archives" class="mobile-nav-link">ARCHIVES</a>
-  
-    <a href="/categories" class="mobile-nav-link">CATEGORIES</a>
-  
-    <a href="/tags" class="mobile-nav-link">TAGS</a>
-  
-    <a href="/about" class="mobile-nav-link">ABOUT</a>
-  
-</nav> -->
-    <footer id="footer" class="site-footer">
-  
-
-  <div class="clearfix container">
-      <div class="site-info">
-	      &copy; 2020 Tomato&#39;s blog All Rights Reserved.
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                    title="Teilen auf Facebook"
+                    aria-label="Teilen auf Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
         
-            <span id="busuanzi_container_site_uv">
-              本站访客数<span id="busuanzi_value_site_uv"></span>人次  
-              本站总访问量<span id="busuanzi_value_site_pv"></span>次
-            </span>
-          
-      </div>
-      <div class="site-credit">
-        Theme by <a href="https://github.com/iTimeTraveler/hexo-theme-hipaper" target="_blank">hipaper</a>
-      </div>
-  </div>
-</footer>
-
-
-<!-- min height -->
-
-<script>
-    var wrapdiv = document.getElementById("wrap");
-    var contentdiv = document.getElementById("content");
-
-    wrapdiv.style.minHeight = document.body.offsetHeight - document.getElementById("allheader").offsetHeight - document.getElementById("footer").offsetHeight + "px";
-    contentdiv.style.minHeight = document.body.offsetHeight - document.getElementById("allheader").offsetHeight - document.getElementById("footer").offsetHeight + "px";
-
-
-    <!-- headerblur min height -->
-    
-      var headerblur = document.getElementById("header-blur");
-      headerblur.style.minHeight = window.getComputedStyle(document.getElementById("allheader"), null).height;
-    
-    
-</script>
-    
-<div style="display: none;">
-  <script src="https://s11.cnzz.com/z_stat.php?id=1260716016&web_id=1260716016" language="JavaScript"></script>
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                    title="Teilen auf Twitter"
+                    aria-label="Teilen auf Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                    title="Teilen auf Google Plus"
+                    aria-label="Teilen auf Google Plus"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
 </div>
 
-<!-- mathjax config similar to math.stackexchange -->
 
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      processEscapes: true
-    }
-  });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      }
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-        var all = MathJax.Hub.getAllJax(), i;
-        for(i=0; i < all.length; i += 1) {
-            all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-
-<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-</script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
+        
+        
+            
+        
+    </div>
+</article>
 
 
 
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
 
-<script src="/js/script.js"></script>
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                    data-tooltip="call、apply和bind"
+                    aria-label="FRÜHER: call、apply和bind"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">FRÜHER</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                    data-tooltip="执行上下文"
+                    aria-label="NÄCHSTER: 执行上下文"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">NÄCHSTER</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                    title="Teilen auf Facebook"
+                    aria-label="Teilen auf Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                    title="Teilen auf Twitter"
+                    aria-label="Teilen auf Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                    title="Teilen auf Google Plus"
+                    aria-label="Teilen auf Google Plus"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
 
 
-<script src="/js/bootstrap.js"></script>
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                        aria-label="Teilen auf Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>Teilen auf Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                        aria-label="Teilen auf Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>Teilen auf Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                        aria-label="Teilen auf Google Plus"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>Teilen auf Google Plus</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
 
 
-<script src="/js/main.js"></script>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="Bild des Autors"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
 
 
 
 
-
-
-
-
-  <div style="display: none;">
-    <script src="https://s95.cnzz.com/z_stat.php?id=1260716016&web_id=1260716016" language="JavaScript"></script>
-  </div>
-
-
-
-	<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
-	</script>
-
-
-
-
-
-
-  </div>
-
-  <a id="rocket" href="#top" class=""></a>
-  <script type="text/javascript" src="/js/totop.js" async=""></script>
-</body>
+    </body>
 </html>

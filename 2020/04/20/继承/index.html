@@ -1,182 +1,262 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="zh">
+    
 <head>
-  <meta charset="utf-8">
-  
-  <title>继承 | Tomato&#39;s blog</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  
-  <meta name="keywords" content="前端javascript" />
-  
-  
-  
-  
-  <meta name="description" content="JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。">
-<meta property="og:type" content="article">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>继承 - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。\n\n\n1、借用构造函数实现继承这种继承方法最原始的继承，实现的非常简单就是在子类型构造函数的内部实现超类型的构造函数。可以通过 call 和 apply 来实现。\n12345678910function Father() &#123;  this.money = \"$1\";&#125;function Son() &#123;  Father.call(this);&#125;var son1 = new Son();console.log(son1.money); // $1var son2 = new Son();console.log(son2.money); // $1\n\n上述可见，这完全实现了继承，儿子继承了老子的钱，虽然只有 1 美元，但也是爱啊！\n但是这样有一个问题，我们来看一下：\n123456789101112function Father() &#123;  this.money = \"$1\";&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;  Father.call(this);&#125;var son1 = new Son();console.log(son1.money); // $1son1.makeMoney(); //Uncaught TypeError: son1.makeMoney is not a function\n\n发现了吧，这是一个大问题啊，虽然儿子继承了老子的钱，但是没有继承老子的赚钱的能力，虽然 1 美元是一笔大款，但是没有赚钱的能力，早晚也会花光的啊！这是因为方法都在构造函数中定义，因此函数复用就无从谈起了，而且在父类的原型上定义的方法，对子类型而言也是不可见的，结果所有类型都只能使用构造函数模式。因为这个问题，借助构造函数的技术通常都不是单独使用的。那如何实现继承父类原型上的方法呢？这就要讲到另外一个实现继承的方式了，用原型链继承。\n2、原型链实现继承原型链在 JS 中是一种特殊的存在，那如何实现在原型链上的继承呢？是否想到了 new 这个关键词？new 干了哪些事情呢？这是一个经典面试题，简单的说是：\n\n创建一个新对象\n将新对象的__proto__指向构造函数的 prototype 对象\n将构造函数的作用域赋值给新对象 （也就是 this 指向新对象）\n执行构造函数中的代码（为这个新对象添加属性）\n返回新的对象\n\n第二条就能满足咱们的要求。所以继承父类原型链上的方法我们可以这样写：\n1234567891011function Father() &#123;  this.money = \"$1\";&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;&#125;Son.prototype = new Father();var son1 = new Son(); // $1console.log(son1.money);son1.makeMoney(); // 努力工作\n\n简直完美啊，儿子即继承了 1 美元又继承了努力赚钱的方法。但是好像忽略了一点，这个父亲好像有两个儿子，现在这个父亲不止只有钱还有很多东西，那我们将它们写成一个数组，此时小儿子偷摸的想要老父亲的自行车，老父亲允许了，让他自己拿于是：\n123456789101112131415function Father() &#123;  this.goods = [\"$1\", \"手电筒\", \"冰箱\"];&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;&#125;Son.prototype = new Father();var son1 = new Son();var son2 = new Son();son2.goods.push(\"自行车\");console.log(son1.goods); // [\"$1\", \"手电筒\", \"冰箱\", \"自行车\"]son1.makeMoney(); // 努力工作console.log(son2.goods); // [\"$1\", \"手电筒\", \"冰箱\", \"自行车\"]son2.makeMoney(); // 努力工作\n\n貌似有些尴尬，因为小儿子继承自行车这个事情一下子就被大儿子发现了。这是因为包含引用类型值的原型属性会被所有实例共享。这也是为什么要使用构造函数来定义属性的原因。在通过原型来实现继承时，原型实际上会变成另一个原型的实例，于是原先的实例属性也就变成了现在的原型属性。\n以这个例子来说，父类的 goods 是个数组（引用数据类型），每个父类的实例都会有一个 goods 的属性，在子类通过原型链继承了父类的原型时，子类的原型就是父类的实例，那么每个子类也同样拥有了 goods 这个原型属性，就相当于在 son.prototype.goods 一样，但是由于包含引用类型的原型属性会被所有实例共享，所以当 son1 对 goods 进行修改时，son2 也会被修改。\n3、组合继承组合继承就是把构造函数继承和原型链继承组合在一起，结合两者的长处。\n1234567891011121314151617function Father() &#123;  this.goods = [\"$1\", \"手电筒\", \"冰箱\"];&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;  Father.call(this);&#125;Son.prototype = new Father();var son1 = new Son();var son2 = new Son();son2.goods.push(\"自行车\");console.log(son1.goods); // ['$1', '手电筒', '冰箱']son1.makeMoney(); // 努力工作console.log(son2.goods); // ['$1', '手电筒', '冰箱', '自行车']son2.makeMoney(); // 努力工作\n\n终于满足了小儿子独自继承自行车的梦想。\n4、组合继承的优化组合继承是 JS 中最经典的继承方式，但是上述中还有些许的缺点，会发现在创建一个子类型的实例时，会创建两次父类的实例，接下来就对这一点进行优化。上述借用原型链继承中，应用 new 关键词的目的，就是希望把父类的原型赋值给子类，那可以直接将父类的原型赋值过去，优化 1 如下：\n1234567891011121314151617function Father() &#123;  this.goods = [\"$1\", \"手电筒\", \"冰箱\"];&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;  Father.call(this);&#125;Son.prototype = Father.prototype;var son1 = new Son();var son2 = new Son();son2.goods.push(\"自行车\");console.log(son1.goods); // ['$1', '手电筒', '冰箱']son1.makeMoney(); // 努力工作console.log(son2.goods); // ['$1', '手电筒', '冰箱', '自行车']son2.makeMoney(); // 努力工作\n\n结果没有任何问题，也解决了调用两次父类实例的问题，但是：\n1234son1.constructorƒ Father() &#123;  this.goods = [\"$1\", \"手电筒\", \"冰箱\"];&#125;\n\n子类虽然是继承父类的，但是它的实例也是一个个体啊，儿子 1 和儿子 2 都是儿子啊，怎么一下子成为老子了，这肯定不行。所以我们再次优化，优化 2：\n123456789101112131415161718function Father() &#123;  this.goods = [\"$1\", \"手电筒\", \"冰箱\"];&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;  Father.call(this);&#125;Son.prototype = Object.create(Father.prototype);Son.prototype.constuctor = Son;var son1 = new Son();var son2 = new Son();son2.goods.push(\"自行车\");console.log(son1.goods); // ['$1', '手电筒', '冰箱']son1.makeMoney(); // 努力工作console.log(son2.goods); // ['$1', '手电筒', '冰箱', '自行车']son2.makeMoney(); // 努力工作\n\n这样才算是真正优化完成。\n5、原型式继承本来觉得写到上一条的时候就结束了，但是看到了《高程》里对继承的讲述，还有 ES6 继承特性的底层实现原理，觉得还是有必要好好的了解这一块的知识。\n如高程所讲，提出这种继承方式的人叫道格拉斯·克罗克福德，他在 2006 年写了一篇名为《Prototypal Inheritance in Javascript》（Javascript 中原型式继承），在此书中他实现了一种新型的继承方式，这个继承方式没有使用严格意义上的构造函数，而是建造一个基准的对象，通过原型将已有的基准对象再创建一个新的对象，同时还不必因此创建自定义类型，为了实现这个目的，他创建了如下函数：\n12345function object(o) &#123;  function F() &#123;&#125;  F.prototype = o;  return new F();&#125;\n\n他在里面创建了一个临时的构造函数，然后将传入的对象赋值给这个临时构造函数的原型，最后返回这个临时构造函数的新实例。看下面这个例子：\n12345678var father = &#123;  money: \"$1\",  goods: [\"手电筒\", \"冰箱\"],&#125;;var son1 = object(father);var son2 = object(father);son2.goods.push(\"自行车\");console.log(father.goods); // ['手电筒', '冰箱', 'John', '自行车']\n\n毕竟是通过原型继承，所以终究还是会有原型继承应有的问题，引用类型的属性会被共享，但是有没有感觉这个方法和 Object.create()很像，没错 object.create()就是基于这个方法建立的。\n12345678var father = &#123;  money: \"$1\",  goods: [\"手电筒\", \"冰箱\"],&#125;;var son1 = Object.create(father);var son2 = Object.create(father);son2.goods.push(\"自行车\");console.log(father.friends); // ['手电筒', '冰箱', 'John', '自行车']\n\n但 Object.create()不同的是，它还有第二个参数，第二个参数是可选值，设置第二个参数时，可以指定任何属性都会覆盖原型上的同名属性。\n6、寄生式继承这种继承方式同样是道格拉斯·克罗克福德提出的，有些类似于借用构造函数继承，但是同样的他利用了一个临时构造函数的思想，即所说的寄生思想，将一个对象作为基准，然后寄生在这个对象上，这样就可以拥有这个对象的所有属性和方法，封装成一个函数，在函数内部给这个对象的副本添加新的属性和方法。\n1234567function createAnother(o) &#123;  var clone = object(o);  clone.sayHi = function () &#123;    console.log(\"hi\");  &#125;;  return clone;&#125;\n\n但是这种呢，无法做到函数的复用大大降低效率。\n7、寄生组合式继承前面提到的组合继承时最经典的继承方式，但是有个很重要的问题，会执行两次父类的构造函数。没事我们可以用寄生组合式继承来解决这个问题。\n我们引用《高程》对寄生组合式继承解释：即通过借用构造函数来继承属性，通过原型链的混用形式来继承方法。其背后的思路是：不必为了子类型的原型而调用超类型的构造函数，我们所需要的的无非就是超类型原型的一个副本而已。本质上，就是使用寄生式继承来继承超类型的原型，然后再将结果指定给子类型的原型。如下所示：\n12345function inheritPrototype(father, son) &#123;  var prototype = object(father.prototype);  prototype.constructor = son;  son.prototype = prototype;&#125;\n\n这个示例实现了最简单的寄生组合式继承。它接受了两个参数，分别是父类的构造函数和子类的构造函数。在函数内部第一步是创建一个父类型原型副本，第二步是将新的副本添加 constructor，弥补因重构原型而失去的默认 constuctor 属性，第三步是将新的副本赋值给子类型的原型上。\n这样我们就可以保证只执行一次父类的构造函数。\n12345678910function Father() &#123;  this.money = \"$1\";&#125;Father.prototype.makeMoney = function () &#123;  console.log(\"努力工作\");&#125;;function Son() &#123;  Father.call(this);&#125;inheritPrototype(Father, Son);\n\n8、ES6 的继承 class…extends…以前说到继承的时候只是觉得是个语法糖，用起来很是方便，但是通过写这篇文章查阅资料时看到了其底层实现的原理。这也是写了原型式继承、寄生继承、寄生组合式继承的原因。\n我们先来看一下 ES6 继承：\n123456789101112131415class Father &#123;  constructor() &#123;    this.money = \"$1\";    this.goods = [\"手电筒\", \"冰箱\"];  &#125;  makeMoney = function () &#123;    console.log(\"努力工作\");  &#125;;&#125;class Son extends Father &#123;  constructor() &#123;    super();  &#125;&#125;\n\n用 Bable 转成 ES5 后：\n1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465\"use strict\";function _possibleConstructorReturn(self, call) &#123;  if (!self) &#123;    throw new ReferenceError(      \"this hasn't been initialised - super() hasn't been called\"    );  &#125;  return call &amp;&amp; (typeof call === \"object\" || typeof call === \"function\")    ? call    : self;&#125;function _inherits(subClass, superClass) &#123;  if (typeof superClass !== \"function\" &amp;&amp; superClass !== null) &#123;    throw new TypeError(      \"Super expression must either be null or a function, not \" +        typeof superClass    );  &#125;  subClass.prototype = Object.create(superClass &amp;&amp; superClass.prototype, &#123;    constructor: &#123;      value: subClass,      enumerable: false,      writable: true,      configurable: true,    &#125;,  &#125;);  if (superClass)    Object.setPrototypeOf      ? Object.setPrototypeOf(subClass, superClass)      : (subClass.__proto__ = superClass);&#125;function _classCallCheck(instance, Constructor) &#123;  if (!(instance instanceof Constructor)) &#123;    throw new TypeError(\"Cannot call a class as a function\");  &#125;&#125;var Father = function Father() &#123;  _classCallCheck(this, Father);  this.makeMoney = function () &#123;    console.log(\"努力工作\");  &#125;;  this.money = \"$1\";  this.goods = [\"手电筒\", \"冰箱\"];&#125;;var Son = (function (_Father) &#123;  _inherits(Son, _Father);  function Son() &#123;    _classCallCheck(this, Son);    return _possibleConstructorReturn(      this,      (Son.__proto__ || Object.getPrototypeOf(Son)).call(this)    );  &#125;  return Son;&#125;)(Father);\n\n我们可以看到当创建类的时候，ES6 转换为 ES5 时，跟以前创建类会多一个_classCallCheck 函数，其实看名称就知道是一个检测，它接受两个参数，第一个是 this，第二个是构造函数，判断 this 是否是这个这个构造函数的实例，即 instanceof 检测构造函数的 prototype 属性是否出现在某个实例对象的原型链上，说白了就是判断调用前是否有 new 关键字，不是则抛出 Cannot call a class as a function 异常，所以能进一步可知 class 就是一个语法糖。\nES6 的继承转换为 ES5 后发现子类是一个自执行的函数，将父类作为参数传递过去。首先是_inherits 函数，同样接受两个参数，一个是子类构造函数，一个是父类构造函数。看其内部结构：\n\n首先判断父类的类型\n基于父类的原型创建一个新的对象。并通过 Object.create 的第二个参数，将新对象的构造函数指向子类，再将其赋值给子类的原型。\n将子类的__proto__指向父类的构造函数\n\n第二步是不是很熟悉，没错就是寄生组合式继承的简单版。之后是个闭包，保存父类的引用，闭包内部的实现步骤：\n\n判断调用前是否有 new 关键字\n因为_inherits 函数执行后，Son.__proto__ || Object.getPrototypeOf(Son)实际上指的就是父类的构造函数，通过 call 方法将其调用改为当前的 this\n_possibleConstructorReturn 函数中，首先校验 this 是否被初始化，super 是否调用，并返回父类已经赋值完的 this。\n然后进行子类构造函数中的逻辑\n\n当我们没有写子类构造函数时：\n12345678910111213class Son extends Father &#123;&#125;// 转为ES5var Son = (function (_Father) &#123;  _inherits(Son, _Father);  function Son() &#123;    _classCallCheck(this, Son);    return _possibleConstructorReturn(      this,      (Son.__proto__ || Object.getPrototypeOf(Son)).apply(this, arguments)    );  &#125;  return Son;&#125;)(Father);\n\n可见默认的构造函数中会主动调用父类构造函数，并默认把当前 constructor 传递的参数传给了父类。所以当我们声明了 constructor 后必须主动调用 super(),否则无法调用父构造函数，无法完成继承。本篇就先写到这吧，欢迎留言讨论。\n参考资料：\nJavaScript 高级程序设计（第 3 版）\n","dateCreated":"2020-04-20T10:18:58+08:00","dateModified":"2020-06-25T19:52:13+08:00","datePublished":"2020-04-20T10:18:58+08:00","description":"JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。","headline":"继承","image":["https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1593095782575&di=0f02fa07eb8c80304015e32141a07c1f&imgtype=0&src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/","keywords":"前端, javascript","thumbnailUrl":"https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1593095782575&di=0f02fa07eb8c80304015e32141a07c1f&imgtype=0&src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"}</script>
+    <meta name="description" content="JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。">
+<meta property="og:type" content="blog">
 <meta property="og:title" content="继承">
 <meta property="og:url" content="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
 <meta property="og:description" content="JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。">
 <meta property="og:locale" content="zh">
-<meta property="og:image" content="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/gallery/JavaScript.jpg">
 <meta property="article:published_time" content="2020-04-20T02:18:58.000Z">
-<meta property="article:modified_time" content="2020-06-25T08:07:37.407Z">
+<meta property="article:modified_time" content="2020-06-25T11:52:13.208Z">
 <meta property="article:author" content="TomatoMan">
 <meta property="article:tag" content="前端">
 <meta property="article:tag" content="javascript">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/gallery/JavaScript.jpg">
-  
-    <link rel="alternate" href="/atom.xml" title="Tomato&#39;s blog" type="application/atom+xml">
-  
-  <link rel="icon" href="/css/images/favicon.ico">
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Montserrat:700" rel="stylesheet" type="text/css">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic" rel="stylesheet" type="text/css">
-  <link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
-  <style type="text/css">
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/9749f0/00000000000000000001008f/27/l?subset_id=2&fvd=n5) format("woff2");font-weight:500;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/90cf9f/000000000000000000010091/27/l?subset_id=2&fvd=n7) format("woff2");font-weight:500;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/8a5494/000000000000000000013365/27/l?subset_id=2&fvd=n4) format("woff2");font-weight:lighter;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/d337d8/000000000000000000010095/27/l?subset_id=2&fvd=i4) format("woff2");font-weight:400;font-style:italic;}</style>
     
-  <link rel="stylesheet" id="athemes-headings-fonts-css" href="//fonts.googleapis.com/css?family=Yanone+Kaffeesatz%3A200%2C300%2C400%2C700&amp;ver=4.6.1" type="text/css" media="all">
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
 
-  <link rel="stylesheet" id="athemes-headings-fonts-css" href="//fonts.googleapis.com/css?family=Oswald%3A300%2C400%2C700&amp;ver=4.6.1" type="text/css" media="all">
-  
-<link rel="stylesheet" href="/css/style.css">
+    <!--STYLES END-->
+    
 
+    
 
-  
-<script src="/js/jquery-3.1.1.min.js"></script>
+    
+        
+    
+</head>
 
-
-  <!-- Bootstrap core CSS -->
-  <link rel="stylesheet" href="/css/bootstrap.css" >
-  <link rel="stylesheet" href="/css/fashion.css" >
-  <link rel="stylesheet" href="/css/glyphs.css" >
-
-<meta name="generator" content="Hexo 4.2.0"></head>
-
-
-
-  <body data-spy="scroll" data-target="#toc" data-offset="50">
-
-
-  
-  
-  <div class="site-header-image">
-    <img id="originBg" width="100%" alt="Hike News" src="">
-  </div>
-
-  <div id="header-blur" class="site-header-image blur" style="position: absolute; top:0; height: 207px; min-height: 207px; min-width: 100%;">
-    <img id="blurBg" width="100%" style="top: 96%" alt="Hike News" src="">
-  </div>
-
-  <script>
-        var imgUrls = "css/images/pose01.jpg,https://source.unsplash.com/collection/954550/1920x1080,https://source.unsplash.com/collection/954550/1920x1081".split(",");
-        var random = Math.floor((Math.random() * imgUrls.length ));
-        if (imgUrls[random].startsWith('http') || imgUrls[random].indexOf('://') >= 0) {
-          document.getElementById("originBg").src=imgUrls[random];
-          document.getElementById("blurBg").src=imgUrls[random];
-        } else {
-          document.getElementById("originBg").src='/' + imgUrls[random];
-          document.getElementById("blurBg").src='/' + imgUrls[random];
-        }
-    </script>
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
 
 
-
-
-<header id="allheader" class="site-header" role="banner" 
-   style="width: 100%; position: absolute; top:0; background: rgba(255,255,255,.8);"  >
-  <div class="clearfix container">
-      <div class="site-branding">
-
-          <h1 class="site-title">
-            
-              <a href="/" title="Tomato&#39;s blog" rel="home"> Tomato&#39;s blog </a>
-            
-          </h1>
-          
-          
-            
-          <nav id="main-navigation" class="main-navigation" role="navigation">
-            <a class="nav-open">Menu</a>
-            <a class="nav-close">Close</a>
-
-            <div class="clearfix sf-menu">
-              <ul id="main-nav" class="menu sf-js-enabled sf-arrows"  style="touch-action: pan-y;">
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/">Home</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/archives">Archives</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/categories">Categories</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/tags">Tags</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/about">About</a> </li>
-                    
-              </ul>
-            </div>
-          </nav>
-
-      </div>
-  </div>
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-icon open-algolia-search"
+                href="#search"
+                aria-label="Öffne den Link: /#search"
+            >
+        
+        
+            <i class="fa fa-search fa-lg"></i>
+        
+        </a>
+    
 </header>
 
+            <!-- Define author's picture -->
 
-  <div id="container">
-    <div id="wrap">
-            
-      <div id="content" class="outer">
+
+
         
-          <section id="main" style="float:none;"><article id="post-继承" style="width: 66%; float:left;" class="article article-type-post" itemscope itemprop="blogPost" >
-  <div id="articleInner" class="clearfix post-1016 post type-post status-publish format-standard has-post-thumbnail hentry category-template-2 category-uncategorized tag-codex tag-edge-case tag-featured-image tag-image tag-template">
     
-<div class="article-gallery">
-  <div class="article-gallery-photos">
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="Lesen Sie mehr über den Autor"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="Bild des Autors"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
     
-      <a class="article-gallery-img fancybox" href="/gallery/JavaScript.jpg" rel="gallery_ckbuk2m9x000rocti5z5i1wi4">
-        <img src="/gallery/JavaScript.jpg" itemprop="image">
-      </a>
     
-  </div>
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            继承
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-04-20T10:18:58+08:00">
+	
+		    20 Apr 2020
+    	
+    </time>
+    
+        <span>in </span>
+        
+    <a class="category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
+
+
+    
 </div>
 
     
-      <header class="article-header">
-        
-  
-    <h1 class="thumb" class="article-title" itemprop="name">
-      继承
-    </h1>
-  
+</div>
 
-      </header>
     
-    <div class="article-meta">
-      
-	<a href="/2020/04/20/%E7%BB%A7%E6%89%BF/" class="article-date">
-	  <time datetime="2020-04-20T02:18:58.000Z" itemprop="datePublished">April 20, 2020</time>
-	</a>
-
-      
-	<span class="ico-folder"></span>
-    <a class="article-category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
- 
-      
-	<span id="busuanzi_container_page_pv">
-	  本文总阅读量<span id="busuanzi_value_page_pv"></span>次
-	</span>
-
-    </div>
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p>
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p>
 <a id="more"></a>
 
 <h2 id="1、借用构造函数实现继承"><a href="#1、借用构造函数实现继承" class="headerlink" title="1、借用构造函数实现继承"></a>1、借用构造函数实现继承</h2><p>这种继承方法最原始的继承，实现的非常简单就是在子类型构造函数的内部实现超类型的构造函数。可以通过 call 和 apply 来实现。</p>
@@ -268,213 +348,330 @@
 <p>参考资料：</p>
 <p>JavaScript 高级程序设计（第 3 版）</p>
 
-      
+            
+
+
+        </div>
     </div>
-    <footer class="entry-meta entry-footer">
-      
-	<span class="ico-folder"></span>
-    <a class="article-category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
-
-      
-  <span class="ico-tags"></span>
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/javascript/" rel="tag">javascript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></li></ul>
-
-      
+    <div id="post-footer" class="post-footer main-content-wrap">
         
-	<div id="comment">
-		<!-- 来必力City版安装代码 -->
-		<div id="lv-container" data-id="city" data-uid="MTAyMC8yOTQ4MS82MDQ5">
-		<script type="text/javascript">
-		   (function(d, s) {
-		       var j, e = d.getElementsByTagName(s)[0];
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">GETAGGT IN</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/javascript/" rel="tag">javascript</a> <a class="tag tag--primary tag--small t-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a>
 
-		       if (typeof LivereTower === 'function') { return; }
-
-		       j = d.createElement(s);
-		       j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
-		       j.async = true;
-
-		       e.parentNode.insertBefore(j, e);
-		   })(document, 'script');
-		</script>
-		<noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
-		</div>
-		<!-- City版安装代码已完成 -->
-	</div>
-
-
-
-      
-    </footer>
-    <hr class="entry-footer-hr">
-  </div>
-  
-    
-<nav id="article-nav">
-  
-    <a href="/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
+            </div>
         
-          new关键词
         
-      </div>
-    </a>
-  
-  
-    <a href="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">原型与原型链</div>
-    </a>
-  
-</nav>
-
-  
-</article>
-
-<!-- Table of Contents -->
-
-  <aside id="sidebar">
-    <div id="toc" class="toc-article">
-    <strong class="toc-title">Contents</strong>
-    
-      <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、借用构造函数实现继承"><span class="nav-number">1.</span> <span class="nav-text">1、借用构造函数实现继承</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、原型链实现继承"><span class="nav-number">2.</span> <span class="nav-text">2、原型链实现继承</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3、组合继承"><span class="nav-number">3.</span> <span class="nav-text">3、组合继承</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4、组合继承的优化"><span class="nav-number">4.</span> <span class="nav-text">4、组合继承的优化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5、原型式继承"><span class="nav-number">5.</span> <span class="nav-text">5、原型式继承</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6、寄生式继承"><span class="nav-number">6.</span> <span class="nav-text">6、寄生式继承</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7、寄生组合式继承"><span class="nav-number">7.</span> <span class="nav-text">7、寄生组合式继承</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8、ES6-的继承-class…extends…"><span class="nav-number">8.</span> <span class="nav-text">8、ES6 的继承 class…extends…</span></a></li></ol>
-    
-    </div>
-  </aside>
-</section>
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                    data-tooltip="new关键词"
+                    aria-label="FRÜHER: new关键词"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">FRÜHER</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                    data-tooltip="原型与原型链"
+                    aria-label="NÄCHSTER: 原型与原型链"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">NÄCHSTER</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
         
-      </div>
-
-    </div>
-    <!-- <nav id="mobile-nav">
-  
-    <a href="/" class="mobile-nav-link">HOME</a>
-  
-    <a href="/archives" class="mobile-nav-link">ARCHIVES</a>
-  
-    <a href="/categories" class="mobile-nav-link">CATEGORIES</a>
-  
-    <a href="/tags" class="mobile-nav-link">TAGS</a>
-  
-    <a href="/about" class="mobile-nav-link">ABOUT</a>
-  
-</nav> -->
-    <footer id="footer" class="site-footer">
-  
-
-  <div class="clearfix container">
-      <div class="site-info">
-	      &copy; 2020 Tomato&#39;s blog All Rights Reserved.
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                    title="Teilen auf Facebook"
+                    aria-label="Teilen auf Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
         
-            <span id="busuanzi_container_site_uv">
-              本站访客数<span id="busuanzi_value_site_uv"></span>人次  
-              本站总访问量<span id="busuanzi_value_site_pv"></span>次
-            </span>
-          
-      </div>
-      <div class="site-credit">
-        Theme by <a href="https://github.com/iTimeTraveler/hexo-theme-hipaper" target="_blank">hipaper</a>
-      </div>
-  </div>
-</footer>
-
-
-<!-- min height -->
-
-<script>
-    var wrapdiv = document.getElementById("wrap");
-    var contentdiv = document.getElementById("content");
-
-    wrapdiv.style.minHeight = document.body.offsetHeight - document.getElementById("allheader").offsetHeight - document.getElementById("footer").offsetHeight + "px";
-    contentdiv.style.minHeight = document.body.offsetHeight - document.getElementById("allheader").offsetHeight - document.getElementById("footer").offsetHeight + "px";
-
-
-    <!-- headerblur min height -->
-    
-      var headerblur = document.getElementById("header-blur");
-      headerblur.style.minHeight = window.getComputedStyle(document.getElementById("allheader"), null).height;
-    
-    
-</script>
-    
-<div style="display: none;">
-  <script src="https://s11.cnzz.com/z_stat.php?id=1260716016&web_id=1260716016" language="JavaScript"></script>
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                    title="Teilen auf Twitter"
+                    aria-label="Teilen auf Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                    title="Teilen auf Google Plus"
+                    aria-label="Teilen auf Google Plus"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
 </div>
 
-<!-- mathjax config similar to math.stackexchange -->
 
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      processEscapes: true
-    }
-  });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      }
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-        var all = MathJax.Hub.getAllJax(), i;
-        for(i=0; i < all.length; i += 1) {
-            all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-
-<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-</script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
+        
+        
+            
+        
+    </div>
+</article>
 
 
 
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
 
-<script src="/js/script.js"></script>
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                    data-tooltip="new关键词"
+                    aria-label="FRÜHER: new关键词"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">FRÜHER</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                    data-tooltip="原型与原型链"
+                    aria-label="NÄCHSTER: 原型与原型链"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">NÄCHSTER</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                    title="Teilen auf Facebook"
+                    aria-label="Teilen auf Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                    title="Teilen auf Twitter"
+                    aria-label="Teilen auf Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                    title="Teilen auf Google Plus"
+                    aria-label="Teilen auf Google Plus"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
 
 
-<script src="/js/bootstrap.js"></script>
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                        aria-label="Teilen auf Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>Teilen auf Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                        aria-label="Teilen auf Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>Teilen auf Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                        aria-label="Teilen auf Google Plus"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>Teilen auf Google Plus</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
 
 
-<script src="/js/main.js"></script>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="Bild des Autors"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
 
 
 
 
-
-
-
-
-  <div style="display: none;">
-    <script src="https://s95.cnzz.com/z_stat.php?id=1260716016&web_id=1260716016" language="JavaScript"></script>
-  </div>
-
-
-
-	<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
-	</script>
-
-
-
-
-
-
-  </div>
-
-  <a id="rocket" href="#top" class=""></a>
-  <script type="text/javascript" src="/js/totop.js" async=""></script>
-</body>
+    </body>
 </html>

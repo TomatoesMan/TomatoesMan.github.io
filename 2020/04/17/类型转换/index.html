@@ -1,182 +1,262 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="zh">
+    
 <head>
-  <meta charset="utf-8">
-  
-  <title>类型转换 | Tomato&#39;s blog</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  
-  <meta name="keywords" content="前端javascript" />
-  
-  
-  
-  
-  <meta name="description" content="1、显示类型转换显示类型转换顾名思义就是用特有的方法对类型进行转换显示类型转换的方式只有三种：">
-<meta property="og:type" content="article">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>类型转换 - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"1、显示类型转换显示类型转换顾名思义就是用特有的方法对类型进行转换显示类型转换的方式只有三种：\n\n\n1、Number()\n原始类型转换\n\n数值：转换后还是数值\n字符串：如果可以被解析为数值，则转化为相应的数值会忽略所有前导的 0，否则得到 NaN，空字符串为 0\n\n1Number(\"000001\"); //1\n\n\n布尔值：true 转成 1，false 转成 0\nundefined：转成 NaN\nnull：转成 0\n\n\n对象类型转换\n\n先调用对象自身的 valueOf 方法，如果该方法返回原始类型的值（数值、字符串和布尔值），则直接对该值使用 Number 方法，不再进行后续步骤\n如果 valueOf 方法返回复合类型的值，再调用对象自身的 toString 方法，如果 toString 方法返回原始类型的值，则对该值使用 Number 方法，不再进行后续步骤\n如果 toString 方法返回的是复合类型的值，则报错\n\n\nparseInt 和 parseFloat\n\nparseInt：只解析整数，当传入的值以‘0x’或‘0X’开头时，会解析成十六进制数\nparseFloat：既可以解析整数又可以解析浮点数\n共同点：都会跳过任意数量的前导空格，尽可能解析更多数值字符，并忽略后面的内容。如果第一个非空格字符是非法的数字直接量，将最终返回 NaN\n\n\n\n2、String()\n原始类型转换\n\n数值：转为相应的字符串\n字符串：转换后还是原来的值\n布尔值：true 转为‘true’，false 转为‘false’\nundefined：转为‘undefined\nnull：转为‘null’\n\n\n对象类型转换\n\n先调用 toString 方法，如果 toString 方法返回的是原始类型的值，则对该值使用 String 方法，不再进行以下步骤\n如果 toString 方法返回的是复合类型的值，再调用 valueOf 方法，如果 valueOf 方法返回的是原始类型的值，则对该值使用 String 方法，不再进行以下步骤\n如果 valueOf 方法返回的是复合类型的值，则报错\n\n\nJSON.stringify()JSON.stringify 底层也是调用了 toString 方法\n\n\n3、Boolean()undefined、null、-0、+0、NaN、’’（空字符串）返回的都是 false，除了上述的都是返回 true，包括对象类型\n2、隐式类型转换隐式类型转换同样有三种：\n1、+（加号）1.1 一元+（加号）运算符查看ES5 规范 11.4.6可以看到，当+（加号）作为一元运算符时，底层会调用 ToNumber 方法去处理，相当于 Number()，当+（加号）后是普通数值时，返回的就是 Number(数值)\n1+\"1\"; //1\n\n当+（加号）后是对象类型时，对象类型就会像显示类型中所讲：\n\n先调用对象自身的 valueOf 方法，如果该方法返回原始类型的值（数值、字符串和布尔值），则直接对该值使用 Number 方法，不再进行后续步骤\n如果 valueOf 方法返回复合类型的值，再调用对象自身的 toString 方法，如果 toString 方法返回原始类型的值，则对该值使用 Number 方法，不再进行后续步骤\n如果 toString 方法返回的是复合类型的值，则报错\n\n12+[]; //0  []先调用valueof方法返回[]，再调用toString方法返回\"\"+&#123;&#125;; //NaN &#123;&#125;相当于new Object() 先调用valueof方法返回&#123;&#125;，再调用toString方法返回\"[object Object]\"\n\n1.2 二元+（加号）运算符查看ES5 规范 11.6.1可以看到当 value1+value2 时：\n1. lprim = ToPrimitive(value1)\n2. rprim = ToPrimitive(value2)\n3. 如果 lprim 和 rprim 都是 String 类型时，则直接返回 ToString(lprim)和 ToString(rprim)拼接结果\n4. 返回 ToNumber(lprim) 和 ToNumber(rprim)的运算结果ToPrimitive、ToString、ToNumber 三者皆为内部函数:\n\nToPrimitive 执行的步骤：\n\n如果 obj 为基本类型，直接返回\n否则，调用 valueOf 方法，如果返回一个原始值，则 JavaScript 将其返回。\n否则，调用 toString 方法，如果返回一个原始值，则 JavaScript 将其返回。\n否则，JavaScript 抛出一个类型错误异常。\n\n\nToString 相当于 String()\n\nToNumber 相当于 Number()\n\n\n按上述规范，对下列几个例子进行讲解：\n12345null + 1; //1//1、lprim = ToPrimitive(null) 因为null为基本数据类型，所以返回null//2、lprim = ToPrimitive(1) 因为1为基本数据类型，所以返回1//3、lprim和lprim都不是String类型，所以执行第四部//4、ToNumber(null)+ToNumber(1),所以返回为1\n\n12345undefined + 1; //NaNnull//1、lprim = ToPrimitive(undefined) 因为undefined为基本数据类型，所以返回undefined//2、lprim = ToPrimitive(1) 因为1为基本数据类型，所以返回1//3、lprim和lprim都不是String类型，所以执行第四部//4、ToNumber(undefined)+ToNumber(1),所以返回为NaN\n\n1234[] + []; //''//1、lprim = ToPrimitive([]) []的valueof为[]不是基本数据类型，再调用toString方法返回的是''//2、lprim = ToPrimitive([]) []的valueof为[]不是基本数据类型，再调用toString方法返回的是''//3、lprim和lprim都是String类型，所以直接返回拼接，结果为''\n\n1234[] + &#123;&#125;; //'[object Object]'//1、lprim = ToPrimitive([]) []的valueof为[]不是基本数据类型，再调用toString方法返回的是''//2、lprim = ToPrimitive(&#123;&#125;) &#123;&#125;的valueof为&#123;&#125;不是基本数据类型，再调用toString方法返回的是'[object Object]'//3、lprim和lprim都是String类型，所以直接返回拼接，结果为'[object Object]'\n\n123&#123;&#125; + []; //0//按照规范来说，这个的结果应该和上一个一样，但是为什么会出现如此的不同，是因为在浏览器中，&#123;&#125;相当于一个独立的代码块，所以浏览器认为&#123;&#125;+[]相当于+[]，所以返回0//如果想返回和上一个一样的结果的话可以在表达式外加括号,(&#123;&#125; + [])这样就返回正常的结果了\n\n1&#123;&#125; + &#123;&#125;; //谷歌返回'[object Object][object Object]' 火狐返回NaN\n\n2、比较运算2.1 ==相等同样我们查看ES5 规范 11.9.3中所讲：比较 x == y，其中 x 和 y 是值，产生 true 或 false。这样的比较执行如下：\n1. 如果 x,y 类型相同，则\n  a. 如果 x 是 Undefined，则返回 true。\n  b. 如果 x 为 Null，则返回 true。\n  c. 如果 x 是数字，则\n      i. 如果 x 为 NaN，则返回 false。\n      ii. 如果 y 为 NaN，则返回 false。\n      iii. 如果 x 与 y 相同，则返回 true。\n      iv. 如果 x 为+0 且 y 为 − 0，则返回 true。\n      v. 如果 x 为 − 0 且 y 为+0，则返回 true。\n      vi.返回 false。\n  d. 如果 x 类型为 String，则如果 x 和 y 是完全相同的字符序列（相同的长度和相同位置的相同字符），则返回 true。否则，返回 false。\n  e. 如果 x 类型为布尔值，则如果 x 和 y 均为 true 或均为 false，则返回 true。否则，返回 false。\n  f. 如果 x 和 y 指向同一对象，则 返回 true。否则，返回 false。\n2. 如果 x 是 Null 和 y 是 Undefined 的，返回 true。\n3. 如果 X 是 Undefined 和 y 为 Null，返回 true。\n4. 如果 x 类型是 Number 且 y 类型是 String，则返回比较结果 x == ToNumber（y）。\n5. 如果 x 类型为 String 且 y 类型为 Number，则返回比较结果 ToNumber（x）== y。\n6. 如果 x 类型为布尔值，则返回比较结果 ToNumber（x）== y。\n7. 如果 y 类型为布尔型，则返回比较结果 x == ToNumber（y）。\n8. 如果 x 类型是 String 或 Number 且 y 类型是 Object，则返回比较结果 x == ToPrimitive（y）。\n9. 如果 x 类型是 Object 并且 y 类型是 String 或 Number，则返回比较结果 ToPrimitive（x）== y。\n10. 返回 false。按上述规范，对下列几个例子进行讲解：\n123undefined == undefined; //truenull == null; //ture//查看上述的1.a、1.b条\n\n12NaN == NaN; //false//查看上述的1.c.i条\n\n123undefined == null; //truenull == undefined; //ture//查看上述的2、3条\n\n1231 == \"1\"; //true\"1\" == 1; //ture//查看上述的4、5条\n\n123false == 0; //true0 == false; //ture//查看上述的6、7条\n\n123[] == 0; //true0 == []; //ture//查看上述的8、9条\n\n2.2 &lt;判断同样我们查看ES5 规范 11.8.5中所讲：比较 x &lt; y（其中 x 和 y 是值）会产生 true，false 或 undefined（这表明至少一个操作数是 NaN）。除 x 和 y 外，该算法还使用名为 LeftFirst 的布尔标志 作为参数。该标志用于控制对 x 和 y 进行具有潜在可见副作用的操作的顺序 。这是必需的，因为 ECMAScript 指定了从左到右的表达式求值。LeftFirst 的默认值 为 true，表示 x 参数对应于 y 参数对应表达式左侧出现的表达式。如果 LeftFirst 为假，则相反，操作必须在 x 之前对 y 执行。这样的比较执行如下：\n1. 如果LeftFirst标志为true，则\n  a. 设 px为调用ToPrimitive的结果（x，Number）。\n  b. 令 py为调用ToPrimitive的结果（y，Number）。\n2. 否则需要颠倒评估顺序以保留从左到右的评估\n  a. 令 py为调用ToPrimitive的结果（y，Number）。\n  b. 设 px为调用ToPrimitive的结果（x，Number）。\n3. 如果px和py都不是String类型，则\n  a. 令 nx为调用ToNumber（px）的结果。因为px和py是原始值，所以评估顺序并不重要。\n  b. 令 ny为调用ToNumber（py）的结果。\n  c. 如果 nx是NaN，则返回undefined。\n  d. 如果 ny是NaN，则返回undefined。\n  e. 如果 nx和ny是相同的Number值，则返回false。\n  f. 如果 nx为+0且ny为− 0，则返回false。\n  g. 如果 nx为− 0 且ny为+0，则返回false。\n  h. 如果 nx为+ ∞，则返回false。\n  i. 如果 ny为+ ∞，则返回true。\n  j. 如果 ny为-∞，则返回false。\n  k. 如果 nx为-∞，则返回true。\n  l. 如果nx的数学值小于ny的数学值（请注意，这些数学值都是有限的且不都是零），则返回true。否则，返回 false。\n4. 否则，px和py都是字符串\n  a. 如果 py是px的前缀，则返回false。（如果q 可以是连接p和其他String r的结果，则String值p是String值q的前缀。请注意，任何String都是其自身的前缀，因为r 可能是空String。）\n  b. 如果 px是py的前缀，则返回true。\n  c. 令 k为最小的非负整数，以使px内的位置k处的字符不同于py内的位置k处的字符。（必须有一个k，因为String都不是另一个的前缀。）\n  d. 设m为整数，表示字符在px内位置k处的代码单位值。\n  e. 设n为整数，表示字符在py中位置k处的代码单位值。\n  f. 如果 m &lt; n，则返回true。否则，返回 false。按上述规范，对下列几个例子进行讲解：\n12[] &lt; []; //false// 以我理解为首先LeftFirst发现左边为false，而后颠倒发现左边依旧为false，则相当于fasle&lt;fasle 最后结果为fasle\n\n12[] &lt; &#123;&#125;; //ture// 相当于''和'[object Object]'进行比较，则明显空字符串小\n\n参考：冴羽：JavaScript 深入之头疼的类型转换(上)冴羽：JavaScript 深入之头疼的类型转换(下)\n","dateCreated":"2020-04-17T11:38:47+08:00","dateModified":"2020-06-25T19:52:17+08:00","datePublished":"2020-04-17T11:38:47+08:00","description":"1、显示类型转换显示类型转换顾名思义就是用特有的方法对类型进行转换显示类型转换的方式只有三种：","headline":"类型转换","image":["https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1593095782575&di=0f02fa07eb8c80304015e32141a07c1f&imgtype=0&src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/","keywords":"前端, javascript","thumbnailUrl":"https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1593095782575&di=0f02fa07eb8c80304015e32141a07c1f&imgtype=0&src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"}</script>
+    <meta name="description" content="1、显示类型转换显示类型转换顾名思义就是用特有的方法对类型进行转换显示类型转换的方式只有三种：">
+<meta property="og:type" content="blog">
 <meta property="og:title" content="类型转换">
 <meta property="og:url" content="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
 <meta property="og:description" content="1、显示类型转换显示类型转换顾名思义就是用特有的方法对类型进行转换显示类型转换的方式只有三种：">
 <meta property="og:locale" content="zh">
-<meta property="og:image" content="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/gallery/JavaScript.jpg">
 <meta property="article:published_time" content="2020-04-17T03:38:47.000Z">
-<meta property="article:modified_time" content="2020-06-25T08:08:10.381Z">
+<meta property="article:modified_time" content="2020-06-25T11:52:17.674Z">
 <meta property="article:author" content="TomatoMan">
 <meta property="article:tag" content="前端">
 <meta property="article:tag" content="javascript">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/gallery/JavaScript.jpg">
-  
-    <link rel="alternate" href="/atom.xml" title="Tomato&#39;s blog" type="application/atom+xml">
-  
-  <link rel="icon" href="/css/images/favicon.ico">
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Montserrat:700" rel="stylesheet" type="text/css">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic" rel="stylesheet" type="text/css">
-  <link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
-  <style type="text/css">
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/9749f0/00000000000000000001008f/27/l?subset_id=2&fvd=n5) format("woff2");font-weight:500;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/90cf9f/000000000000000000010091/27/l?subset_id=2&fvd=n7) format("woff2");font-weight:500;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/8a5494/000000000000000000013365/27/l?subset_id=2&fvd=n4) format("woff2");font-weight:lighter;font-style:normal;}
-    @font-face{font-family:futura-pt;src:url(https://use.typekit.net/af/d337d8/000000000000000000010095/27/l?subset_id=2&fvd=i4) format("woff2");font-weight:400;font-style:italic;}</style>
     
-  <link rel="stylesheet" id="athemes-headings-fonts-css" href="//fonts.googleapis.com/css?family=Yanone+Kaffeesatz%3A200%2C300%2C400%2C700&amp;ver=4.6.1" type="text/css" media="all">
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
 
-  <link rel="stylesheet" id="athemes-headings-fonts-css" href="//fonts.googleapis.com/css?family=Oswald%3A300%2C400%2C700&amp;ver=4.6.1" type="text/css" media="all">
-  
-<link rel="stylesheet" href="/css/style.css">
+    <!--STYLES END-->
+    
 
+    
 
-  
-<script src="/js/jquery-3.1.1.min.js"></script>
+    
+        
+    
+</head>
 
-
-  <!-- Bootstrap core CSS -->
-  <link rel="stylesheet" href="/css/bootstrap.css" >
-  <link rel="stylesheet" href="/css/fashion.css" >
-  <link rel="stylesheet" href="/css/glyphs.css" >
-
-<meta name="generator" content="Hexo 4.2.0"></head>
-
-
-
-  <body data-spy="scroll" data-target="#toc" data-offset="50">
-
-
-  
-  
-  <div class="site-header-image">
-    <img id="originBg" width="100%" alt="Hike News" src="">
-  </div>
-
-  <div id="header-blur" class="site-header-image blur" style="position: absolute; top:0; height: 207px; min-height: 207px; min-width: 100%;">
-    <img id="blurBg" width="100%" style="top: 96%" alt="Hike News" src="">
-  </div>
-
-  <script>
-        var imgUrls = "css/images/pose01.jpg,https://source.unsplash.com/collection/954550/1920x1080,https://source.unsplash.com/collection/954550/1920x1081".split(",");
-        var random = Math.floor((Math.random() * imgUrls.length ));
-        if (imgUrls[random].startsWith('http') || imgUrls[random].indexOf('://') >= 0) {
-          document.getElementById("originBg").src=imgUrls[random];
-          document.getElementById("blurBg").src=imgUrls[random];
-        } else {
-          document.getElementById("originBg").src='/' + imgUrls[random];
-          document.getElementById("blurBg").src='/' + imgUrls[random];
-        }
-    </script>
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
 
 
-
-
-<header id="allheader" class="site-header" role="banner" 
-   style="width: 100%; position: absolute; top:0; background: rgba(255,255,255,.8);"  >
-  <div class="clearfix container">
-      <div class="site-branding">
-
-          <h1 class="site-title">
-            
-              <a href="/" title="Tomato&#39;s blog" rel="home"> Tomato&#39;s blog </a>
-            
-          </h1>
-          
-          
-            
-          <nav id="main-navigation" class="main-navigation" role="navigation">
-            <a class="nav-open">Menu</a>
-            <a class="nav-close">Close</a>
-
-            <div class="clearfix sf-menu">
-              <ul id="main-nav" class="menu sf-js-enabled sf-arrows"  style="touch-action: pan-y;">
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/">Home</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/archives">Archives</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/categories">Categories</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/tags">Tags</a> </li>
-                    
-                      <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-1663"> <a class="" href="/about">About</a> </li>
-                    
-              </ul>
-            </div>
-          </nav>
-
-      </div>
-  </div>
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-icon open-algolia-search"
+                href="#search"
+                aria-label="Öffne den Link: /#search"
+            >
+        
+        
+            <i class="fa fa-search fa-lg"></i>
+        
+        </a>
+    
 </header>
 
+            <!-- Define author's picture -->
 
-  <div id="container">
-    <div id="wrap">
-            
-      <div id="content" class="outer">
+
+
         
-          <section id="main" style="float:none;"><article id="post-类型转换" style="width: 66%; float:left;" class="article article-type-post" itemscope itemprop="blogPost" >
-  <div id="articleInner" class="clearfix post-1016 post type-post status-publish format-standard has-post-thumbnail hentry category-template-2 category-uncategorized tag-codex tag-edge-case tag-featured-image tag-image tag-template">
     
-<div class="article-gallery">
-  <div class="article-gallery-photos">
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="Lesen Sie mehr über den Autor"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="Bild des Autors"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
     
-      <a class="article-gallery-img fancybox" href="/gallery/JavaScript.jpg" rel="gallery_ckbuk2m9u000jocti0bs73265">
-        <img src="/gallery/JavaScript.jpg" itemprop="image">
-      </a>
     
-  </div>
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            类型转换
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-04-17T11:38:47+08:00">
+	
+		    17 Apr 2020
+    	
+    </time>
+    
+        <span>in </span>
+        
+    <a class="category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
+
+
+    
 </div>
 
     
-      <header class="article-header">
-        
-  
-    <h1 class="thumb" class="article-title" itemprop="name">
-      类型转换
-    </h1>
-  
+</div>
 
-      </header>
     
-    <div class="article-meta">
-      
-	<a href="/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/" class="article-date">
-	  <time datetime="2020-04-17T03:38:47.000Z" itemprop="datePublished">April 17, 2020</time>
-	</a>
-
-      
-	<span class="ico-folder"></span>
-    <a class="article-category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
- 
-      
-	<span id="busuanzi_container_page_pv">
-	  本文总阅读量<span id="busuanzi_value_page_pv"></span>次
-	</span>
-
-    </div>
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p>
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p>
 <a id="more"></a>
 
 <h3 id="1、Number"><a href="#1、Number" class="headerlink" title="1、Number()"></a>1、Number()</h3><ul>
@@ -341,213 +421,330 @@
 
 <p>参考：<br><a href="https://github.com/mqyqingfeng/Blog/issues/159" target="_blank" rel="noopener">冴羽：JavaScript 深入之头疼的类型转换(上)</a><br><a href="https://github.com/mqyqingfeng/Blog/issues/164" target="_blank" rel="noopener">冴羽：JavaScript 深入之头疼的类型转换(下)</a></p>
 
-      
+            
+
+
+        </div>
     </div>
-    <footer class="entry-meta entry-footer">
-      
-	<span class="ico-folder"></span>
-    <a class="article-category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
-
-      
-  <span class="ico-tags"></span>
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/javascript/" rel="tag">javascript</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a></li></ul>
-
-      
+    <div id="post-footer" class="post-footer main-content-wrap">
         
-	<div id="comment">
-		<!-- 来必力City版安装代码 -->
-		<div id="lv-container" data-id="city" data-uid="MTAyMC8yOTQ4MS82MDQ5">
-		<script type="text/javascript">
-		   (function(d, s) {
-		       var j, e = d.getElementsByTagName(s)[0];
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">GETAGGT IN</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/javascript/" rel="tag">javascript</a> <a class="tag tag--primary tag--small t-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a>
 
-		       if (typeof LivereTower === 'function') { return; }
-
-		       j = d.createElement(s);
-		       j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
-		       j.async = true;
-
-		       e.parentNode.insertBefore(j, e);
-		   })(document, 'script');
-		</script>
-		<noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
-		</div>
-		<!-- City版安装代码已完成 -->
-	</div>
-
-
-
-      
-    </footer>
-    <hr class="entry-footer-hr">
-  </div>
-  
-    
-<nav id="article-nav">
-  
-    <a href="/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
+            </div>
         
-          深拷贝和浅拷贝
         
-      </div>
-    </a>
-  
-  
-    <a href="/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">js基础类型和引用类型</div>
-    </a>
-  
-</nav>
-
-  
-</article>
-
-<!-- Table of Contents -->
-
-  <aside id="sidebar">
-    <div id="toc" class="toc-article">
-    <strong class="toc-title">Contents</strong>
-    
-      <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、显示类型转换"><span class="nav-number">1.</span> <span class="nav-text">1、显示类型转换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、Number"><span class="nav-number">1.1.</span> <span class="nav-text">1、Number()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2、String"><span class="nav-number">1.2.</span> <span class="nav-text">2、String()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3、Boolean"><span class="nav-number">1.3.</span> <span class="nav-text">3、Boolean()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、隐式类型转换"><span class="nav-number">2.</span> <span class="nav-text">2、隐式类型转换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、-（加号）"><span class="nav-number">2.1.</span> <span class="nav-text">1、+（加号）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-一元-（加号）运算符"><span class="nav-number">2.1.1.</span> <span class="nav-text">1.1 一元+（加号）运算符</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-二元-（加号）运算符"><span class="nav-number">2.1.2.</span> <span class="nav-text">1.2 二元+（加号）运算符</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2、比较运算"><span class="nav-number">2.2.</span> <span class="nav-text">2、比较运算</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-相等"><span class="nav-number">2.2.1.</span> <span class="nav-text">2.1 &#x3D;&#x3D;相等</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-lt-判断"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.2 &lt;判断</span></a></li></ol></li></ol></li></ol>
-    
-    </div>
-  </aside>
-</section>
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                    data-tooltip="深拷贝和浅拷贝"
+                    aria-label="FRÜHER: 深拷贝和浅拷贝"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">FRÜHER</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    data-tooltip="js基础类型和引用类型"
+                    aria-label="NÄCHSTER: js基础类型和引用类型"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">NÄCHSTER</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
         
-      </div>
-
-    </div>
-    <!-- <nav id="mobile-nav">
-  
-    <a href="/" class="mobile-nav-link">HOME</a>
-  
-    <a href="/archives" class="mobile-nav-link">ARCHIVES</a>
-  
-    <a href="/categories" class="mobile-nav-link">CATEGORIES</a>
-  
-    <a href="/tags" class="mobile-nav-link">TAGS</a>
-  
-    <a href="/about" class="mobile-nav-link">ABOUT</a>
-  
-</nav> -->
-    <footer id="footer" class="site-footer">
-  
-
-  <div class="clearfix container">
-      <div class="site-info">
-	      &copy; 2020 Tomato&#39;s blog All Rights Reserved.
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                    title="Teilen auf Facebook"
+                    aria-label="Teilen auf Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
         
-            <span id="busuanzi_container_site_uv">
-              本站访客数<span id="busuanzi_value_site_uv"></span>人次  
-              本站总访问量<span id="busuanzi_value_site_pv"></span>次
-            </span>
-          
-      </div>
-      <div class="site-credit">
-        Theme by <a href="https://github.com/iTimeTraveler/hexo-theme-hipaper" target="_blank">hipaper</a>
-      </div>
-  </div>
-</footer>
-
-
-<!-- min height -->
-
-<script>
-    var wrapdiv = document.getElementById("wrap");
-    var contentdiv = document.getElementById("content");
-
-    wrapdiv.style.minHeight = document.body.offsetHeight - document.getElementById("allheader").offsetHeight - document.getElementById("footer").offsetHeight + "px";
-    contentdiv.style.minHeight = document.body.offsetHeight - document.getElementById("allheader").offsetHeight - document.getElementById("footer").offsetHeight + "px";
-
-
-    <!-- headerblur min height -->
-    
-      var headerblur = document.getElementById("header-blur");
-      headerblur.style.minHeight = window.getComputedStyle(document.getElementById("allheader"), null).height;
-    
-    
-</script>
-    
-<div style="display: none;">
-  <script src="https://s11.cnzz.com/z_stat.php?id=1260716016&web_id=1260716016" language="JavaScript"></script>
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                    title="Teilen auf Twitter"
+                    aria-label="Teilen auf Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                    title="Teilen auf Google Plus"
+                    aria-label="Teilen auf Google Plus"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
 </div>
 
-<!-- mathjax config similar to math.stackexchange -->
 
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({
-    tex2jax: {
-      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-      processEscapes: true
-    }
-  });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-      tex2jax: {
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      }
-    });
-</script>
-
-<script type="text/x-mathjax-config">
-    MathJax.Hub.Queue(function() {
-        var all = MathJax.Hub.getAllJax(), i;
-        for(i=0; i < all.length; i += 1) {
-            all[i].SourceElement().parentNode.className += ' has-jax';
-        }
-    });
-</script>
-
-<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-</script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
+        
+        
+            
+        
+    </div>
+</article>
 
 
 
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
 
-<script src="/js/script.js"></script>
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                    data-tooltip="深拷贝和浅拷贝"
+                    aria-label="FRÜHER: 深拷贝和浅拷贝"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">FRÜHER</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    data-tooltip="js基础类型和引用类型"
+                    aria-label="NÄCHSTER: js基础类型和引用类型"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">NÄCHSTER</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                    title="Teilen auf Facebook"
+                    aria-label="Teilen auf Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                    title="Teilen auf Twitter"
+                    aria-label="Teilen auf Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                    title="Teilen auf Google Plus"
+                    aria-label="Teilen auf Google Plus"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
 
 
-<script src="/js/bootstrap.js"></script>
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                        aria-label="Teilen auf Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>Teilen auf Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                        aria-label="Teilen auf Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>Teilen auf Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                        aria-label="Teilen auf Google Plus"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>Teilen auf Google Plus</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
 
 
-<script src="/js/main.js"></script>
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="Bild des Autors"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
 
 
 
 
-
-
-
-
-  <div style="display: none;">
-    <script src="https://s95.cnzz.com/z_stat.php?id=1260716016&web_id=1260716016" language="JavaScript"></script>
-  </div>
-
-
-
-	<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
-	</script>
-
-
-
-
-
-
-  </div>
-
-  <a id="rocket" href="#top" class=""></a>
-  <script type="text/javascript" src="/js/totop.js" async=""></script>
-</body>
+    </body>
 </html>
