@@ -11,16 +11,16 @@
   
   
   
-  <meta name="description" content="1、创建对象  创建对象有几种方法：  字面量创建  123let obj &#x3D; &amp;#123;  name: &quot;o1&quot;,&amp;#125;;   object 构造函数创建  123let obj &#x3D; new Object(&amp;#123;  name: &quot;o2&quot;,&amp;#125;);   构造函数创建  1234let Person &#x3D; function () &amp;#123;  this.name &#x3D; &quot;o3">
+  <meta name="description" content="1、创建对象">
 <meta property="og:type" content="article">
 <meta property="og:title" content="原型与原型链">
 <meta property="og:url" content="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
-<meta property="og:description" content="1、创建对象  创建对象有几种方法：  字面量创建  123let obj &#x3D; &amp;#123;  name: &quot;o1&quot;,&amp;#125;;   object 构造函数创建  123let obj &#x3D; new Object(&amp;#123;  name: &quot;o2&quot;,&amp;#125;);   构造函数创建  1234let Person &#x3D; function () &amp;#123;  this.name &#x3D; &quot;o3">
+<meta property="og:description" content="1、创建对象">
 <meta property="og:locale" content="zh">
 <meta property="og:image" content="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/gallery/JavaScript.jpg">
 <meta property="article:published_time" content="2020-04-20T01:07:29.000Z">
-<meta property="article:modified_time" content="2020-06-25T08:13:51.262Z">
+<meta property="article:modified_time" content="2020-06-25T08:47:16.817Z">
 <meta property="article:author" content="TomatoMan">
 <meta property="article:tag" content="前端">
 <meta property="article:tag" content="javascript">
@@ -66,10 +66,32 @@
 
 
   
+  
+  <div class="site-header-image">
+    <img id="originBg" width="100%" alt="Hike News" src="">
+  </div>
+
+  <div id="header-blur" class="site-header-image blur" style="position: absolute; top:0; height: 207px; min-height: 207px; min-width: 100%;">
+    <img id="blurBg" width="100%" style="top: 96%" alt="Hike News" src="">
+  </div>
+
+  <script>
+        var imgUrls = "css/images/pose01.jpg,https://source.unsplash.com/collection/954550/1920x1080,https://source.unsplash.com/collection/954550/1920x1081".split(",");
+        var random = Math.floor((Math.random() * imgUrls.length ));
+        if (imgUrls[random].startsWith('http') || imgUrls[random].indexOf('://') >= 0) {
+          document.getElementById("originBg").src=imgUrls[random];
+          document.getElementById("blurBg").src=imgUrls[random];
+        } else {
+          document.getElementById("originBg").src='/' + imgUrls[random];
+          document.getElementById("blurBg").src='/' + imgUrls[random];
+        }
+    </script>
+
+
 
 
 <header id="allheader" class="site-header" role="banner" 
-   >
+   style="width: 100%; position: absolute; top:0; background: rgba(255,255,255,.8);"  >
   <div class="clearfix container">
       <div class="site-branding">
 
@@ -118,7 +140,7 @@
 <div class="article-gallery">
   <div class="article-gallery-photos">
     
-      <a class="article-gallery-img fancybox" href="/gallery/JavaScript.jpg" rel="gallery_ckbujgutd0009jstifa626api">
+      <a class="article-gallery-img fancybox" href="/gallery/JavaScript.jpg" rel="gallery_ckbuk2m9q000aocti2xeeg0s0">
         <img src="/gallery/JavaScript.jpg" itemprop="image">
       </a>
     
@@ -154,9 +176,7 @@
     </div>
     <div class="article-entry" itemprop="articleBody">
       
-        <a id="more"></a>
-
-<h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2><!-- more -->
+        <h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2><a id="more"></a>
 
 <p>创建对象有几种方法：</p>
 <ol>
@@ -310,6 +330,9 @@
 
 
     <!-- headerblur min height -->
+    
+      var headerblur = document.getElementById("header-blur");
+      headerblur.style.minHeight = window.getComputedStyle(document.getElementById("allheader"), null).height;
     
     
 </script>

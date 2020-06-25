@@ -56,10 +56,32 @@
 
 
   
+  
+  <div class="site-header-image">
+    <img id="originBg" width="100%" alt="Hike News" src="">
+  </div>
+
+  <div id="header-blur" class="site-header-image blur" style="position: absolute; top:0; height: 207px; min-height: 207px; min-width: 100%;">
+    <img id="blurBg" width="100%" style="top: 96%" alt="Hike News" src="">
+  </div>
+
+  <script>
+        var imgUrls = "css/images/pose01.jpg,https://source.unsplash.com/collection/954550/1920x1080,https://source.unsplash.com/collection/954550/1920x1081".split(",");
+        var random = Math.floor((Math.random() * imgUrls.length ));
+        if (imgUrls[random].startsWith('http') || imgUrls[random].indexOf('://') >= 0) {
+          document.getElementById("originBg").src=imgUrls[random];
+          document.getElementById("blurBg").src=imgUrls[random];
+        } else {
+          document.getElementById("originBg").src='/' + imgUrls[random];
+          document.getElementById("blurBg").src='/' + imgUrls[random];
+        }
+    </script>
+
+
 
 
 <header id="allheader" class="site-header" role="banner" 
-   >
+   style="width: 100%; position: absolute; top:0; background: rgba(255,255,255,.8);"  >
   <div class="clearfix container">
       <div class="site-branding">
 
@@ -132,33 +154,18 @@
     </div>
     <div class="article-entry" itemprop="articleBody">
       
-        <a id="more"></a>
+        
+          <div class="entry-thumbnail">
+            <a href="/2020/06/22/var%E3%80%81let%E5%92%8Cconst/"><img src="gallery/ES6.jpg" class="attachment-thumb-featured size-thumb-featured wp-post-image" alt=""></a>
+          </div>
+          <div class="entry-summary">
+          1、var在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如：
 
-<h2 id="1、var"><a href="#1、var" class="headerlink" title="1、var"></a>1、var</h2><p>在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="literal">false</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">console</span>.log(a);</span><br></pre></td></tr></table></figure>
-
-<p>如果初学者第一次看这段代码的时候，肯定会觉得段代码会报错，因为 if 中的条件是 false，并没有执行 var a = 1，所以最后应该报 a 没有定义的错误，但是实际最后却输出了 undefined，这就是变量提升。<br>什么是变量提升：<br>MDN 是这么说的：变量提升（Hoisting）被认为是， Javascript 中执行上下文 （特别是创建和执行阶段）工作方式的一种认识。在 ECMAScript® 2015 Language Specification 之前的 JavaScript 文档中找不到变量提升（Hoisting）这个词。不过，需要注意的是，开始时，这个概念可能比较难理解，甚至恼人。<br>这就没了？对这就没了！当看到的时候同样有这个疑问，所以我在<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/var" target="_blank" rel="noopener">var 描述</a>中找到了这么一句话：变量声明，无论发生在何处，都在执行任何代码之前进行处理。<br>所以以上代码可以被翻译成这样：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a;</span><br><span class="line"><span class="keyword">if</span> (<span class="literal">false</span>) &#123;</span><br><span class="line">  a = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">console</span>.log(a);</span><br></pre></td></tr></table></figure>
-
-<h2 id="2、let"><a href="#2、let" class="headerlink" title="2、let"></a>2、let</h2><p>我们先看一下 let 的几大特性：</p>
-<h3 id="1、没有声明提升"><a href="#1、没有声明提升" class="headerlink" title="1、没有声明提升"></a>1、没有声明提升</h3><p>我们通过代码来看一下：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="literal">false</span>) &#123;</span><br><span class="line">  <span class="keyword">let</span> a = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">console</span>.log(a);</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2020/06/22/var%E3%80%81let%E5%92%8Cconst/2020_06_22_22_36.53.bmp" alt="执行结果"><br>欣喜若狂终于得到了我们想要的结果，报错，a 没有被定义。</p>
-<h3 id="2、重复声明报错"><a href="#2、重复声明报错" class="headerlink" title="2、重复声明报错"></a>2、重复声明报错</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">let</span> a = <span class="number">2</span>;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2020/06/22/var%E3%80%81let%E5%92%8Cconst/2020_06_22_22_38.58.bmp" alt="执行结果"><br>哇塞，报错了，显示 a 已经被定义过了，这简直是太友好了，终于不会一不小心就改变了全局变量，也终于避免了重复命名的危险。</p>
-<h3 id="3、不绑定全局作用域"><a href="#3、不绑定全局作用域" class="headerlink" title="3、不绑定全局作用域"></a>3、不绑定全局作用域</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">window</span>.a); <span class="comment">// undefined</span></span><br></pre></td></tr></table></figure>
-
-<p>根本没有定义到全局上，主要还是因为 let 是块级作用域不是全局作用域。</p>
-<h2 id="3、const"><a href="#3、const" class="headerlink" title="3、const"></a>3、const</h2><p>在开发中 const 我们一般是来定义常量，即不可更改的量，它的基本特性和 let 是差不多的。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> a = <span class="number">1</span>;</span><br><span class="line">a = <span class="number">3</span>;</span><br></pre></td></tr></table></figure>
-
-<p>执行上述代码时，会报错，因为 const 定义的是常量，无法进行修改。但是当 const 定义的是引用数据类型时：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> a = &#123;</span><br><span class="line">  value: <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br><span class="line">a.value = <span class="number">2</span>;</span><br><span class="line"><span class="built_in">console</span>.log(a); <span class="comment">// &#123;value: 2&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>感觉有些打脸，但确实如此，这是因为 const 定义的实际是引用地址，它判断是的引用地址是否发生变化，虽然改变了引用数据中的数据，但是它的引用地址并没有发生变化，所以就可以更改，但是这种方式还是不提倡的。</p>
-
+        
+          <p class="article-more-link">
+            <a href="/2020/06/22/var%E3%80%81let%E5%92%8Cconst/#more">Continue Reading →</a>
+          </p>
+        </div>
       
     </div>
     <footer class="entry-meta entry-footer">
@@ -575,39 +582,18 @@
     </div>
     <div class="article-entry" itemprop="articleBody">
       
-        <a id="more"></a>
+        
+          <div class="entry-thumbnail">
+            <a href="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"><img src="gallery/JavaScript.jpg" class="attachment-thumb-featured size-thumb-featured wp-post-image" alt=""></a>
+          </div>
+          <div class="entry-summary">
+          1、创建对象
 
-<h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2><!-- more -->
-
-<p>创建对象有几种方法：</p>
-<ol>
-<li>字面量创建</li>
-</ol>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  name: <span class="string">"o1"</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-<ol start="2">
-<li>object 构造函数创建</li>
-</ol>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = <span class="keyword">new</span> <span class="built_in">Object</span>(&#123;</span><br><span class="line">  name: <span class="string">"o2"</span>,</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-<ol start="3">
-<li>构造函数创建</li>
-</ol>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> Person = <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>.name = <span class="string">"o3"</span>;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> obj = <span class="keyword">new</span> Person();</span><br></pre></td></tr></table></figure>
-
-<ol start="4">
-<li>object 方法创建</li>
-</ol>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"o4"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> obj = <span class="built_in">Object</span>.create(person);</span><br></pre></td></tr></table></figure>
-
-<p>此方法是 ES6 新出的方法，此方法的好处可以理解为继承一个对象, 添加的属性是在原型下</p>
-<h2 id="2、原型、构造函数、实例、原型链"><a href="#2、原型、构造函数、实例、原型链" class="headerlink" title="2、原型、构造函数、实例、原型链"></a>2、原型、构造函数、实例、原型链</h2><p><img src="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/%E5%8E%9F%E5%9E%8B%E5%AF%B9%E8%B1%A1.png" alt="logo"></p>
-<p>每个函数都有一个 prototype 的属性，每个函数通过 prototype 属性指向的对象，我们就称之为原型对象。<br>可能比较笼统，对原型也可以这样理解：每一个 JavaScript 对象(null 除外)在创建的时候就会与之关联另一个对象，这个对象就是我们所说的原型，每一个对象都会从原型”继承”属性。</p>
-<p>我们可以看看对象的 prototype 到底返回的是什么：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Person</span>(<span class="params"></span>) </span>&#123;&#125;</span><br><span class="line">Person.prototype;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/prototype.bmp" alt="logo"></p>
-
+        
+          <p class="article-more-link">
+            <a href="/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/#more">Continue Reading →</a>
+          </p>
+        </div>
       
     </div>
     <footer class="entry-meta entry-footer">
@@ -1027,6 +1013,9 @@
 
 
     <!-- headerblur min height -->
+    
+      var headerblur = document.getElementById("header-blur");
+      headerblur.style.minHeight = window.getComputedStyle(document.getElementById("allheader"), null).height;
     
     
 </script>

@@ -11,16 +11,16 @@
   
   
   
-  <meta name="description" content="1、var在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如： 1234if (false) &amp;#123;  var a &#x3D; 1;&amp;#125;console.log(a);  如果初学者第一次看这段代码的时候，肯定会觉得段代码会报错，因为 if 中的条件是 false，并没有执行 var a &#x3D; 1，所以最">
+  <meta name="description" content="1、var在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如：">
 <meta property="og:type" content="article">
 <meta property="og:title" content="var、let和const">
 <meta property="og:url" content="https://tomatoesman.github.io/2020/06/22/var%E3%80%81let%E5%92%8Cconst/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
-<meta property="og:description" content="1、var在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如： 1234if (false) &amp;#123;  var a &#x3D; 1;&amp;#125;console.log(a);  如果初学者第一次看这段代码的时候，肯定会觉得段代码会报错，因为 if 中的条件是 false，并没有执行 var a &#x3D; 1，所以最">
+<meta property="og:description" content="1、var在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如：">
 <meta property="og:locale" content="zh">
 <meta property="og:image" content="https://tomatoesman.github.io/2020/06/22/var%E3%80%81let%E5%92%8Cconst/gallery/ES6.jpg">
 <meta property="article:published_time" content="2020-06-22T14:35:21.000Z">
-<meta property="article:modified_time" content="2020-06-25T08:35:40.678Z">
+<meta property="article:modified_time" content="2020-06-25T08:46:33.178Z">
 <meta property="article:author" content="TomatoMan">
 <meta property="article:tag" content="ES6">
 <meta name="twitter:card" content="summary">
@@ -65,10 +65,32 @@
 
 
   
+  
+  <div class="site-header-image">
+    <img id="originBg" width="100%" alt="Hike News" src="">
+  </div>
+
+  <div id="header-blur" class="site-header-image blur" style="position: absolute; top:0; height: 207px; min-height: 207px; min-width: 100%;">
+    <img id="blurBg" width="100%" style="top: 96%" alt="Hike News" src="">
+  </div>
+
+  <script>
+        var imgUrls = "css/images/pose01.jpg,https://source.unsplash.com/collection/954550/1920x1080,https://source.unsplash.com/collection/954550/1920x1081".split(",");
+        var random = Math.floor((Math.random() * imgUrls.length ));
+        if (imgUrls[random].startsWith('http') || imgUrls[random].indexOf('://') >= 0) {
+          document.getElementById("originBg").src=imgUrls[random];
+          document.getElementById("blurBg").src=imgUrls[random];
+        } else {
+          document.getElementById("originBg").src='/' + imgUrls[random];
+          document.getElementById("blurBg").src='/' + imgUrls[random];
+        }
+    </script>
+
+
 
 
 <header id="allheader" class="site-header" role="banner" 
-   >
+   style="width: 100%; position: absolute; top:0; background: rgba(255,255,255,.8);"  >
   <div class="clearfix container">
       <div class="site-branding">
 
@@ -117,7 +139,7 @@
 <div class="article-gallery">
   <div class="article-gallery-photos">
     
-      <a class="article-gallery-img fancybox" href="/gallery/ES6.jpg" rel="gallery_ckbujgut60002jsti7o835spu">
+      <a class="article-gallery-img fancybox" href="/gallery/ES6.jpg" rel="gallery_ckbuk2m9n0006octidk4y5cob">
         <img src="/gallery/ES6.jpg" itemprop="image">
       </a>
     
@@ -153,9 +175,9 @@
     </div>
     <div class="article-entry" itemprop="articleBody">
       
-        <a id="more"></a>
+        <h2 id="1、var"><a href="#1、var" class="headerlink" title="1、var"></a>1、var</h2><p>在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如：</p>
+<a id="more"></a>
 
-<h2 id="1、var"><a href="#1、var" class="headerlink" title="1、var"></a>1、var</h2><p>在没出现 let 和 const 之前，我们定义变量只能用 var。但是用 var 定义变量通常有很多的问题，就是我们常说的变量提升，例如：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="literal">false</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">console</span>.log(a);</span><br></pre></td></tr></table></figure>
 
 <p>如果初学者第一次看这段代码的时候，肯定会觉得段代码会报错，因为 if 中的条件是 false，并没有执行 var a = 1，所以最后应该报 a 没有定义的错误，但是实际最后却输出了 undefined，这就是变量提升。<br>什么是变量提升：<br>MDN 是这么说的：变量提升（Hoisting）被认为是， Javascript 中执行上下文 （特别是创建和执行阶段）工作方式的一种认识。在 ECMAScript® 2015 Language Specification 之前的 JavaScript 文档中找不到变量提升（Hoisting）这个词。不过，需要注意的是，开始时，这个概念可能比较难理解，甚至恼人。<br>这就没了？对这就没了！当看到的时候同样有这个疑问，所以我在<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/var" target="_blank" rel="noopener">var 描述</a>中找到了这么一句话：变量声明，无论发生在何处，都在执行任何代码之前进行处理。<br>所以以上代码可以被翻译成这样：</p>
@@ -294,6 +316,9 @@
 
 
     <!-- headerblur min height -->
+    
+      var headerblur = document.getElementById("header-blur");
+      headerblur.style.minHeight = window.getComputedStyle(document.getElementById("allheader"), null).height;
     
     
 </script>
