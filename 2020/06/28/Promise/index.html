@@ -1,0 +1,1045 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>Promise - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"Promise 让人又恨又爱的存在，恨是因为面试的时候会围绕它出很多题，又绕又头疼，爱是真香，谁都逃不过真香定律。\n1、概念Promise 是异步编程的一个新的解决方案，阮一峰：ECMAScript 6 入门中给出对 promise 的含义是：所谓 Promise，简单说就是一个容器，里面保存着某个未来才会结束的事件（通常是一个异步操作）的结果。Promise 是一个构造函数，它有两个特点：\n\n\n\nPromise 有三个状态：pending（进行中）、resolved（已成功）和 rejected（已失败）。并且状态不受外部的影响。\n状态一旦改变就无法修改。只能有两个过程：一个是从 pending 到 resolved 还有一个就是从 pending 到 rejected，不可能从 resolved 到 rejected，一旦成功就不可能再失败了。\nPromise 一旦创建就会立即执行，不能中途取消。\n\n2、用法通常我们来说，Promise 主要是解决异步回调地狱。什么是回调地狱？从网上找了几张图，大家可以感受一下被回调地狱所支配的恐惧：回调地狱最大的缺点就是代码可读性差，编写费劲。接下来我们来看一下 Promise 的基本用法：\n12345678new Promise((resolve, reject)=&gt;&#123;  ...  if(success) &#123;    resolve(value);  &#125;else &#123;    reject(error);  &#125;&#125;)\n\n之前说过，Promise 是一个构造函数，它接收一个函数参数，这个函数中接收两个参数，一个是 resolve 还有一个是 rejected，这两个参数均为函数，并且这两个参数不用自己部署，JS 引擎会自动部署。resolve 函数的作用是当异步函数成功时，将成功后的值传递出去，同时也是将状态从 pending 变为 resolved，reject 函数的作用是当异步函数失败后，将失败的错误信息传递出去，同时也是将状态从 pending 变为 rejected。\n2.1、then()当 Promise 实例创建成功后，可以执行其原型上的 then 方法，then 方法同样接收两个函数参数，第一个是接收的 resolve 回调的结果，第二个是 reject 回调的结果，第二个参数是非必填的。\n12345678910new Promise((resolve, reject) =&gt; &#123;  resolve(1);&#125;).then(  (value) =&gt; console.log(value) // 1);new Promise((resolve, reject) =&gt; &#123;  reject(\"出现错误\");&#125;).then(  (error) =&gt; console.log(error) // 出现错误);\n\n因为 Promise 的对象时立即创建的，所以在 resolve 和 reject 函数之前的操作都会立即执行：\n123456new Promise((resolve, reject) =&gt; &#123;  console.log(2);  resolve(1);&#125;).then(  (value) =&gt; console.log(value) // 2 1);\n\nPromise 执行 then 方法后会返回回来一个新的 Promise 对象，所以可以采用链式调用。\n12345new Promise((resolve) =&gt; &#123;  resolve(1);&#125;)  .then((value) =&gt; value + 1)  .then((value) =&gt; console.log(value)); // 2\n\n第一个 then 函数的返回值，可以作为参数传给第二个 then 函数。如果第一个 then 函数返回的依旧是一个 Promise 对象呢？即是一个 Promise 封装的异步操作：\n12345678910new Promise((resolve) =&gt; &#123;  resolve(1);&#125;)  .then(    (value) =&gt;      new Promise((resolve) =&gt; &#123;        resolve(3);      &#125;)  )  .then((value) =&gt; console.log(value)); // 3\n\n此时第二个 then 函数传入的参数，即为第一个 then 函数返回的 Promise 对象的 resolved 状态下传递的值。也可以说只有第一个 then 返回的 Promise 执行状态成功时，第二个 then 函数才会执行。\n2.2、catch()除了 then 函数外，在 Promise 原型上还有一个 catch 函数，此函数时当 Promise 内部异步出现错误的时候即为 rejected 状态时，才执行。\n1234567new Promise((resolve, reject)=&gt;&#123;  throw new Error('test')&#125;).catch(err=&gt;console.log(err)) // Error: test等同于：new Promise((resolve, reject)=&gt;&#123;  throw new Error('test')&#125;).then(null, err=&gt;console.log(err)) // Error: test\n\n当 then 第二个参数和 catch 函数同时存在时，将不会执行 catch 函数：\n12345new Promise((resolve, reject) =&gt; &#123;  throw new Error(\"test\");&#125;)  .then(null, (err) =&gt; console.log(err)) // Error: test  .catch((err) =&gt; console.log(err));\n\n那此时的 catch 捕获的是哪个 Promise 的错误呢？捕获的是前一个 Promise 的错误，即 then 函数返回回来的 Promise 错误：\n1234567new Promise((resolve, reject) =&gt; &#123;  throw new Error(\"test\");&#125;)  .then(null, (err) =&gt; &#123;    throw new Error(\"test1\");  &#125;)  .catch((err) =&gt; console.log(err)); // Error: test1\n\nPromise 的错误有一种类似冒泡机制，当 catch 之前没有没有任何函数截获错误，那终究会被 catch 截获。\n12345new Promise((resolve, reject) =&gt; &#123;  throw new Error(\"test\");&#125;)  .then()  .catch((err) =&gt; console.log(err)); // Error: test\n\n只要 catch 前任何一个 Promise 报错，那终究会被 catch 截获。通常情况下，不建议使用 then 函数的第二个参数来进行错误的捕获，如上所说的 catch 写法可以捕获前面 then 方法执行中的错误，也更接近同步的写法（try/catch）。因此，建议总是使用 catch()方法，而不使用 then()方法的第二个参数。then()返回一个新的 Promise 对象，catch()同样返回一个 Promise 对象，同样可以使用链式调用：\n123456new Promise((resolve, reject) =&gt; &#123;  throw new Error(\"test\");&#125;)  .then()  .catch((err) =&gt; console.log(err)) // Error: test  .then(() =&gt; console.log(2)); // 2\n\n当 catch 捕获完错误后，会接着执行下面的 then 方法，当没有错误抛出时，则会跳过 catch，直接执行后面的 then 方法。但是之后的 Promise 出现错误时，之前的 catch 就捕获不到了。\n12345678new Promise((resolve, reject) =&gt; &#123;  throw new Error(\"test\");&#125;)  .then()  .catch((err) =&gt; &#123;    throw new Error(\"test1\");  &#125;) // Error: test  .then(() =&gt; console.log(2));\n\ncatch 后面可以链式调用 then 方法，同样也可以调用 catch 方法，后面的 catch 方法是接收前一个 catch 方法所抛出的错误。\n2.3、finally在 ES8 中新加入了一个方法，即 finally，此方法不同于 then 和 catch，它不跟踪与 Promise 对象状态的改变，即不管 Promise 的最终状态如何，都会执行这个方法，同时 finally 不同于 then 和 catch 地方就是，它不接受任何参数。\n1234567891011new Promise((resolve) =&gt; &#123;  resolve(1);&#125;)  .then((value) =&gt; console.log(value)) // 1  .finally(() =&gt; console.log(2)); // 2new Promise(() =&gt; &#123;  throw new Error(\"test\");&#125;)  .catch((err) =&gt; console.log(err)) // Error test  .finally(() =&gt; console.log(2)); // 2\n\nfinally 同样返回一个新的 Promise 对象，用法和之前的 then 和 catch 一样，这块就不做过多的讲解了。\n3、其他 API除了上述 Promise 原型上的方法外，Promise 还有很多其他的 API。\n3.1、 Promise.all通过字面意思就能看出来，这个方法是‘全部’意思，由此可见可以接受多个 Promise 对象。该方法接受具有 Iterator 接口并且每个成员都是 Promise 实例的参数，并返回一个新的 Promise 对象。\n1234567891011let p = Promise.all([  new Promise((resolve) =&gt; &#123;    resolve(1);  &#125;),  new Promise((resolve) =&gt; &#123;    resolve(2);  &#125;),  new Promise((resolve) =&gt; &#123;    resolve(3);  &#125;),]);\n\n并且，只有当接受的参数中所有成员的状态都为 resolved 的时候，p 的状态才会为 resolved，如果有一个成员的状态为 rejected，那 p 的状态就为 rejected。当所有成员的状态均为 resolved 的时候，会将每个成员 resolved 状态下的值拼成数组传递给 p 的回调函数。\n123456789101112let p = Promise.all([  new Promise((resolve) =&gt; &#123;    resolve(1);  &#125;),  new Promise((resolve) =&gt; &#123;    resolve(2);  &#125;),  new Promise((resolve) =&gt; &#123;    resolve(3);  &#125;),]);p.then((result) =&gt; console.log(result)); // [1, 2, 3]\n\n当有一个成员的状态为 rejected 的时候，则会将第一个 rejected 状态的值返给 p 的 catch 方法。\n123456789101112let p = Promise.all([  new Promise((resolve) =&gt; &#123;    resolve(1);  &#125;),  new Promise((resolve, rejecct) =&gt; &#123;    rejecct(2);  &#125;),  new Promise((resolve) =&gt; &#123;    resolve(3);  &#125;),]);p.catch((err) =&gt; console.log(err));\n\n如果有一个成员为 rejected 状态，并且自身调用了 catch 方法，那将不会走 p 对象的 catch 方法，这一点要注意。\n3.2、 Promise.racerace 翻译成中文是竞赛的意思，他表示多个 Promise 对象，哪个成员率先改变状态，那 Promise.race 返回的 Promise 对象的状态变为什么，并将值转递给 p 的回调函数，它和 Promise.all 接收的参数一样。\n12345678910111213141516171819202122232425let p = Promise.race([  new Promise((resolve) =&gt; &#123;    setTimeout(() =&gt; resolve(1), 100);  &#125;),  new Promise((resolve) =&gt; &#123;    setTimeout(() =&gt; resolve(2), 50);  &#125;),  new Promise((resolve) =&gt; &#123;    setTimeout(() =&gt; resolve(3), 200);  &#125;),]);p.then((result) =&gt; console.log(result)); // 2let p = Promise.race([  new Promise((resolve) =&gt; &#123;    setTimeout(() =&gt; resolve(1), 100);  &#125;),  new Promise((resolve, reject) =&gt; &#123;    setTimeout(() =&gt; reject(2), 50);  &#125;),  new Promise((resolve) =&gt; &#123;    setTimeout(() =&gt; resolve(3), 200);  &#125;),]);p.catch((err) =&gt; console.log(err)); // 2\n\n3.3、Promise.allSettled该方法是 ES2020 新加入的，和 all 一样，返回一个新的 Promise 对象，接收一组 Promise 对象，但是和 all 区别的是，当不管每个成员的 Promise 是什么状态，只要执行结束，则返回的 Promise 对象就会执行结束。\n123456789101112let p = Promise.allSettled([  new Promise((resolve) =&gt; &#123;    resolve(1);  &#125;),  new Promise((resolve, rejecct) =&gt; &#123;    rejecct(2);  &#125;),  new Promise((resolve) =&gt; &#123;    resolve(3);  &#125;),]);p.then((value) =&gt; console.log(JSON.stringify(value))); // [&#123;status:\"fulfilled\",value:1&#125;,&#123;status:\"rejected\",reason:2&#125;,&#123;status:\"fulfilled\",value:3&#125;]\n\n有时候异步请求并不在意是否能够成功，这个时候这个方法就很符合场景了，并且返回一个数组，数组中每个对象有两个状态，一个是 fulfilled，另一个是 rejected，返回之后可以进行筛选，查看错误信息。\n3.4、Promise.resolve将一个对象转化为一个 Promise 对象。\n123Promise.resolve(\"foo\");等价于;new Promise((resolve) =&gt; resolve(\"foo\"));\n\n当 Promise.resolve 的参数是一个 Promise 实例时，原封不动的返回这个实例：\n123let p = new Promsie((resolve) =&gt; resolve(1));let p1 = Promise.resolve(p);p === p1; // true\n\n当参数是一个 thenable 对象时，即含有 then 方法的对象时，会返回一个 Promise 对象，并立即执行 then 方法。\n1234567let thenable = &#123;  then: function (resolve, reject) &#123;    resolve(1);  &#125;,&#125;;let p = Promise.resolve(thenable);p.then((value) =&gt; console.log(value)); // 1\n\n当参数是不是一个 thenable 对象时，由于参数不是一个异步的，所以当 Promise.resolve 后，直接的状态就是 resolved 的状态，所以 then 后就会输出原值。\n123456789101. 参数是个普通对象let obj = &#123;  name: '1'&#125;let p = Promise.resolve(obj);p.then(value=&gt;console.log(value)) // &#123;name: '1'&#125;2. 参数是个基本数据类型let num = '1';let p = Promise.resolve(num);p.then(value=&gt;console.log(value)) // 1\n\n当不传参数的时候，返回的就是一个带有 resolved 状态的 Promise 对象。\n3.5、Promise.reject返回一个状态为 rejected 的 Promise 对象，传入的参数作为错误信息作为后续方法传递的参数。\n123let num = \"1\";let p = Promise.reject(num);p.then(null, (err) =&gt; console.log(err)); // 1\n\n当参数是 thenable 对象时，返回的不是 error 信息而是 thenable 对象。\n1234567let thenable = &#123;  then: function (resolve, reject) &#123;    reject(1);  &#125;,&#125;;let p = Promise.reject(thenable);p.then(null, (err) =&gt; console.log(err === thenable)); // true\n","dateCreated":"2020-06-28T22:05:33+08:00","dateModified":"2020-06-28T23:05:36+08:00","datePublished":"2020-06-28T22:05:33+08:00","description":"Promise 让人又恨又爱的存在，恨是因为面试的时候会围绕它出很多题，又绕又头疼，爱是真香，谁都逃不过真香定律。\n1、概念Promise 是异步编程的一个新的解决方案，阮一峰：ECMAScript 6 入门中给出对 promise 的含义是：所谓 Promise，简单说就是一个容器，里面保存着某个未来才会结束的事件（通常是一个异步操作）的结果。Promise 是一个构造函数，它有两个特点：","headline":"Promise","image":["http://images2015.cnblogs.com/blog/136834/201603/136834-20160328115802613-474558625.png"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/06/28/Promise/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/06/28/Promise/","keywords":"ES6","thumbnailUrl":"http://images2015.cnblogs.com/blog/136834/201603/136834-20160328115802613-474558625.png"}</script>
+    <meta name="description" content="Promise 让人又恨又爱的存在，恨是因为面试的时候会围绕它出很多题，又绕又头疼，爱是真香，谁都逃不过真香定律。 1、概念Promise 是异步编程的一个新的解决方案，阮一峰：ECMAScript 6 入门中给出对 promise 的含义是：所谓 Promise，简单说就是一个容器，里面保存着某个未来才会结束的事件（通常是一个异步操作）的结果。Promise 是一个构造函数，它有两个特点：">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Promise">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/06/28/Promise/index.html">
+<meta property="og:site_name" content="Tomato&#39;s blog">
+<meta property="og:description" content="Promise 让人又恨又爱的存在，恨是因为面试的时候会围绕它出很多题，又绕又头疼，爱是真香，谁都逃不过真香定律。 1、概念Promise 是异步编程的一个新的解决方案，阮一峰：ECMAScript 6 入门中给出对 promise 的含义是：所谓 Promise，简单说就是一个容器，里面保存着某个未来才会结束的事件（通常是一个异步操作）的结果。Promise 是一个构造函数，它有两个特点：">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-06-28T14:05:33.000Z">
+<meta property="article:modified_time" content="2020-06-28T15:05:36.883Z">
+<meta property="article:author" content="TomatoMan">
+<meta property="article:tag" content="ES6">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="http://images2015.cnblogs.com/blog/136834/201603/136834-20160328115802613-474558625.png"/>
+        <meta class="swiftype" name="image" data-type="enum" content="http://images2015.cnblogs.com/blog/136834/201603/136834-20160328115802613-474558625.png"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Promise
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-06-28T22:05:33+08:00">
+	
+		    6月 28, 2020
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/ES6/">ES6</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>Promise 让人又恨又爱的存在，恨是因为面试的时候会围绕它出很多题，又绕又头疼，爱是真香，谁都逃不过真香定律。</p>
+<h2 id="1、概念"><a href="#1、概念" class="headerlink" title="1、概念"></a>1、概念</h2><p>Promise 是异步编程的一个新的解决方案，<a href="https://es6.ruanyifeng.com/#docs/promise" target="_blank" rel="noopener">阮一峰：ECMAScript 6 入门</a>中给出对 promise 的含义是：所谓 Promise，简单说就是一个容器，里面保存着某个未来才会结束的事件（通常是一个异步操作）的结果。<br>Promise 是一个构造函数，它有两个特点：</p>
+<a id="more"></a>
+
+<ol>
+<li>Promise 有三个状态：pending（进行中）、resolved（已成功）和 rejected（已失败）。并且状态不受外部的影响。</li>
+<li>状态一旦改变就无法修改。只能有两个过程：一个是从 pending 到 resolved 还有一个就是从 pending 到 rejected，不可能从 resolved 到 rejected，一旦成功就不可能再失败了。</li>
+<li>Promise 一旦创建就会立即执行，不能中途取消。</li>
+</ol>
+<h2 id="2、用法"><a href="#2、用法" class="headerlink" title="2、用法"></a>2、用法</h2><p>通常我们来说，Promise 主要是解决异步回调地狱。什么是回调地狱？<br>从网上找了几张图，大家可以感受一下被回调地狱所支配的恐惧：<br>回调地狱最大的缺点就是代码可读性差，编写费劲。<br>接下来我们来看一下 Promise 的基本用法：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>)=&gt;</span>&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">if</span>(success) &#123;</span><br><span class="line">    resolve(value);</span><br><span class="line">  &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">    reject(error);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>之前说过，Promise 是一个构造函数，它接收一个函数参数，这个函数中接收两个参数，一个是 resolve 还有一个是 rejected，这两个参数均为函数，并且这两个参数不用自己部署，JS 引擎会自动部署。<br>resolve 函数的作用是当异步函数成功时，将成功后的值传递出去，同时也是将状态从 pending 变为 resolved，reject 函数的作用是当异步函数失败后，将失败的错误信息传递出去，同时也是将状态从 pending 变为 rejected。</p>
+<h3 id="2-1、then"><a href="#2-1、then" class="headerlink" title="2.1、then()"></a>2.1、then()</h3><p>当 Promise 实例创建成功后，可以执行其原型上的 then 方法，then 方法同样接收两个函数参数，第一个是接收的 resolve 回调的结果，第二个是 reject 回调的结果，第二个参数是非必填的。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  resolve(<span class="number">1</span>);</span><br><span class="line">&#125;).then(</span><br><span class="line">  (value) =&gt; <span class="built_in">console</span>.log(value) <span class="comment">// 1</span></span><br><span class="line">);</span><br><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  reject(<span class="string">"出现错误"</span>);</span><br><span class="line">&#125;).then(</span><br><span class="line">  (error) =&gt; <span class="built_in">console</span>.log(error) <span class="comment">// 出现错误</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>因为 Promise 的对象时立即创建的，所以在 resolve 和 reject 函数之前的操作都会立即执行：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="number">2</span>);</span><br><span class="line">  resolve(<span class="number">1</span>);</span><br><span class="line">&#125;).then(</span><br><span class="line">  (value) =&gt; <span class="built_in">console</span>.log(value) <span class="comment">// 2 1</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>Promise 执行 then 方法后会返回回来一个新的 Promise 对象，所以可以采用链式调用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">  resolve(<span class="number">1</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> value + <span class="number">1</span>)</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)); <span class="comment">// 2</span></span><br></pre></td></tr></table></figure>
+
+<p>第一个 then 函数的返回值，可以作为参数传给第二个 then 函数。如果第一个 then 函数返回的依旧是一个 Promise 对象呢？即是一个 Promise 封装的异步操作：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">  resolve(<span class="number">1</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then(</span><br><span class="line">    (value) =&gt;</span><br><span class="line">      <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">        resolve(<span class="number">3</span>);</span><br><span class="line">      &#125;)</span><br><span class="line">  )</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)); <span class="comment">// 3</span></span><br></pre></td></tr></table></figure>
+
+<p>此时第二个 then 函数传入的参数，即为第一个 then 函数返回的 Promise 对象的 resolved 状态下传递的值。也可以说只有第一个 then 返回的 Promise 执行状态成功时，第二个 then 函数才会执行。</p>
+<h3 id="2-2、catch"><a href="#2-2、catch" class="headerlink" title="2.2、catch()"></a>2.2、catch()</h3><p>除了 then 函数外，在 Promise 原型上还有一个 catch 函数，此函数时当 Promise 内部异步出现错误的时候即为 rejected 状态时，才执行。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">'test'</span>)</span><br><span class="line">&#125;).catch(<span class="function"><span class="params">err</span>=&gt;</span><span class="built_in">console</span>.log(err)) <span class="comment">// Error: test</span></span><br><span class="line">等同于：</span><br><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">'test'</span>)</span><br><span class="line">&#125;).then(<span class="literal">null</span>, err=&gt;<span class="built_in">console</span>.log(err)) <span class="comment">// Error: test</span></span><br></pre></td></tr></table></figure>
+
+<p>当 then 第二个参数和 catch 函数同时存在时，将不会执行 catch 函数：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test"</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then(<span class="literal">null</span>, (err) =&gt; <span class="built_in">console</span>.log(err)) <span class="comment">// Error: test</span></span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err));</span><br></pre></td></tr></table></figure>
+
+<p>那此时的 catch 捕获的是哪个 Promise 的错误呢？捕获的是前一个 Promise 的错误，即 then 函数返回回来的 Promise 错误：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test"</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then(<span class="literal">null</span>, (err) =&gt; &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test1"</span>);</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)); <span class="comment">// Error: test1</span></span><br></pre></td></tr></table></figure>
+
+<p>Promise 的错误有一种类似冒泡机制，当 catch 之前没有没有任何函数截获错误，那终究会被 catch 截获。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test"</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then()</span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)); <span class="comment">// Error: test</span></span><br></pre></td></tr></table></figure>
+
+<p>只要 catch 前任何一个 Promise 报错，那终究会被 catch 截获。<br>通常情况下，不建议使用 then 函数的第二个参数来进行错误的捕获，如上所说的 catch 写法可以捕获前面 then 方法执行中的错误，也更接近同步的写法（try/catch）。因此，建议总是使用 catch()方法，而不使用 then()方法的第二个参数。<br>then()返回一个新的 Promise 对象，catch()同样返回一个 Promise 对象，同样可以使用链式调用：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test"</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then()</span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)) <span class="comment">// Error: test</span></span><br><span class="line">  .then(<span class="function"><span class="params">()</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="number">2</span>)); <span class="comment">// 2</span></span><br></pre></td></tr></table></figure>
+
+<p>当 catch 捕获完错误后，会接着执行下面的 then 方法，当没有错误抛出时，则会跳过 catch，直接执行后面的 then 方法。但是之后的 Promise 出现错误时，之前的 catch 就捕获不到了。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test"</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then()</span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test1"</span>);</span><br><span class="line">  &#125;) <span class="comment">// Error: test</span></span><br><span class="line">  .then(<span class="function"><span class="params">()</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="number">2</span>));</span><br></pre></td></tr></table></figure>
+
+<p>catch 后面可以链式调用 then 方法，同样也可以调用 catch 方法，后面的 catch 方法是接收前一个 catch 方法所抛出的错误。</p>
+<h3 id="2-3、finally"><a href="#2-3、finally" class="headerlink" title="2.3、finally"></a>2.3、finally</h3><p>在 ES8 中新加入了一个方法，即 finally，此方法不同于 then 和 catch，它不跟踪与 Promise 对象状态的改变，即不管 Promise 的最终状态如何，都会执行这个方法，同时 finally 不同于 then 和 catch 地方就是，它不接受任何参数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">  resolve(<span class="number">1</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)) <span class="comment">// 1</span></span><br><span class="line">  .finally(<span class="function"><span class="params">()</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="number">2</span>)); <span class="comment">// 2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"test"</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)) <span class="comment">// Error test</span></span><br><span class="line">  .finally(<span class="function"><span class="params">()</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="number">2</span>)); <span class="comment">// 2</span></span><br></pre></td></tr></table></figure>
+
+<p>finally 同样返回一个新的 Promise 对象，用法和之前的 then 和 catch 一样，这块就不做过多的讲解了。</p>
+<h2 id="3、其他-API"><a href="#3、其他-API" class="headerlink" title="3、其他 API"></a>3、其他 API</h2><p>除了上述 Promise 原型上的方法外，Promise 还有很多其他的 API。</p>
+<h3 id="3-1、-Promise-all"><a href="#3-1、-Promise-all" class="headerlink" title="3.1、 Promise.all"></a>3.1、 Promise.all</h3><p>通过字面意思就能看出来，这个方法是‘全部’意思，由此可见可以接受多个 Promise 对象。<br>该方法接受具有 Iterator 接口并且每个成员都是 Promise 实例的参数，并返回一个新的 Promise 对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.all([</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">1</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">2</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">3</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">]);</span><br></pre></td></tr></table></figure>
+
+<p>并且，只有当接受的参数中所有成员的状态都为 resolved 的时候，p 的状态才会为 resolved，如果有一个成员的状态为 rejected，那 p 的状态就为 rejected。<br>当所有成员的状态均为 resolved 的时候，会将每个成员 resolved 状态下的值拼成数组传递给 p 的回调函数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.all([</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">1</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">2</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">3</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">]);</span><br><span class="line">p.then(<span class="function">(<span class="params">result</span>) =&gt;</span> <span class="built_in">console</span>.log(result)); <span class="comment">// [1, 2, 3]</span></span><br></pre></td></tr></table></figure>
+
+<p>当有一个成员的状态为 rejected 的时候，则会将第一个 rejected 状态的值返给 p 的 catch 方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.all([</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">1</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, rejecct</span>) =&gt;</span> &#123;</span><br><span class="line">    rejecct(<span class="number">2</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">3</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">]);</span><br><span class="line">p.catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err));</span><br></pre></td></tr></table></figure>
+
+<p>如果有一个成员为 rejected 状态，并且自身调用了 catch 方法，那将不会走 p 对象的 catch 方法，这一点要注意。</p>
+<h3 id="3-2、-Promise-race"><a href="#3-2、-Promise-race" class="headerlink" title="3.2、 Promise.race"></a>3.2、 Promise.race</h3><p>race 翻译成中文是竞赛的意思，他表示多个 Promise 对象，哪个成员率先改变状态，那 Promise.race 返回的 Promise 对象的状态变为什么，并将值转递给 p 的回调函数，它和 Promise.all 接收的参数一样。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.race([</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> resolve(<span class="number">1</span>), <span class="number">100</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> resolve(<span class="number">2</span>), <span class="number">50</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> resolve(<span class="number">3</span>), <span class="number">200</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">]);</span><br><span class="line">p.then(<span class="function">(<span class="params">result</span>) =&gt;</span> <span class="built_in">console</span>.log(result)); <span class="comment">// 2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.race([</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> resolve(<span class="number">1</span>), <span class="number">100</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> reject(<span class="number">2</span>), <span class="number">50</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> resolve(<span class="number">3</span>), <span class="number">200</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">]);</span><br><span class="line">p.catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)); <span class="comment">// 2</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3、Promise-allSettled"><a href="#3-3、Promise-allSettled" class="headerlink" title="3.3、Promise.allSettled"></a>3.3、Promise.allSettled</h3><p>该方法是 ES2020 新加入的，和 all 一样，返回一个新的 Promise 对象，接收一组 Promise 对象，但是和 all 区别的是，当不管每个成员的 Promise 是什么状态，只要执行结束，则返回的 Promise 对象就会执行结束。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.allSettled([</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">1</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, rejecct</span>) =&gt;</span> &#123;</span><br><span class="line">    rejecct(<span class="number">2</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">  <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> &#123;</span><br><span class="line">    resolve(<span class="number">3</span>);</span><br><span class="line">  &#125;),</span><br><span class="line">]);</span><br><span class="line">p.then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(<span class="built_in">JSON</span>.stringify(value))); <span class="comment">// [&#123;status:"fulfilled",value:1&#125;,&#123;status:"rejected",reason:2&#125;,&#123;status:"fulfilled",value:3&#125;]</span></span><br></pre></td></tr></table></figure>
+
+<p>有时候异步请求并不在意是否能够成功，这个时候这个方法就很符合场景了，并且返回一个数组，数组中每个对象有两个状态，一个是 fulfilled，另一个是 rejected，返回之后可以进行筛选，查看错误信息。</p>
+<h3 id="3-4、Promise-resolve"><a href="#3-4、Promise-resolve" class="headerlink" title="3.4、Promise.resolve"></a>3.4、Promise.resolve</h3><p>将一个对象转化为一个 Promise 对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Promise</span>.resolve(<span class="string">"foo"</span>);</span><br><span class="line">等价于;</span><br><span class="line"><span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> resolve(<span class="string">"foo"</span>));</span><br></pre></td></tr></table></figure>
+
+<p>当 Promise.resolve 的参数是一个 Promise 实例时，原封不动的返回这个实例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> Promsie(<span class="function">(<span class="params">resolve</span>) =&gt;</span> resolve(<span class="number">1</span>));</span><br><span class="line"><span class="keyword">let</span> p1 = <span class="built_in">Promise</span>.resolve(p);</span><br><span class="line">p === p1; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>当参数是一个 thenable 对象时，即含有 then 方法的对象时，会返回一个 Promise 对象，并立即执行 then 方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> thenable = &#123;</span><br><span class="line">  then: <span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">    resolve(<span class="number">1</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.resolve(thenable);</span><br><span class="line">p.then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)); <span class="comment">// 1</span></span><br></pre></td></tr></table></figure>
+
+<p>当参数是不是一个 thenable 对象时，由于参数不是一个异步的，所以当 Promise.resolve 后，直接的状态就是 resolved 的状态，所以 then 后就会输出原值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> 参数是个普通对象</span><br><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  name: <span class="string">'1'</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.resolve(obj);</span><br><span class="line">p.then(<span class="function"><span class="params">value</span>=&gt;</span><span class="built_in">console</span>.log(value)) <span class="comment">// &#123;name: '1'&#125;</span></span><br><span class="line"><span class="number">2.</span> 参数是个基本数据类型</span><br><span class="line"><span class="keyword">let</span> num = <span class="string">'1'</span>;</span><br><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.resolve(num);</span><br><span class="line">p.then(<span class="function"><span class="params">value</span>=&gt;</span><span class="built_in">console</span>.log(value)) <span class="comment">// 1</span></span><br></pre></td></tr></table></figure>
+
+<p>当不传参数的时候，返回的就是一个带有 resolved 状态的 Promise 对象。</p>
+<h3 id="3-5、Promise-reject"><a href="#3-5、Promise-reject" class="headerlink" title="3.5、Promise.reject"></a>3.5、Promise.reject</h3><p>返回一个状态为 rejected 的 Promise 对象，传入的参数作为错误信息作为后续方法传递的参数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> num = <span class="string">"1"</span>;</span><br><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.reject(num);</span><br><span class="line">p.then(<span class="literal">null</span>, (err) =&gt; <span class="built_in">console</span>.log(err)); <span class="comment">// 1</span></span><br></pre></td></tr></table></figure>
+
+<p>当参数是 thenable 对象时，返回的不是 error 信息而是 thenable 对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> thenable = &#123;</span><br><span class="line">  then: <span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">    reject(<span class="number">1</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.reject(thenable);</span><br><span class="line">p.then(<span class="literal">null</span>, (err) =&gt; <span class="built_in">console</span>.log(err === thenable)); <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/06/22/var%E3%80%81let%E5%92%8Cconst/"
+                    data-tooltip="var、let和const"
+                    aria-label="下一篇: var、let和const"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/06/28/Promise/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/06/28/Promise/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/06/28/Promise/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/06/22/var%E3%80%81let%E5%92%8Cconst/"
+                    data-tooltip="var、let和const"
+                    aria-label="下一篇: var、let和const"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/06/28/Promise/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/06/28/Promise/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/06/28/Promise/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/06/28/Promise/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/06/28/Promise/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/06/28/Promise/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+            <div id="algolia-search-modal" class="modal-container">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="close-button"><i class="fa fa-times"></i></span>
+            <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+                <span class="searchby-algolia-text text-color-light text-small">by</span>
+                <img class="searchby-algolia-logo" src="/assets/images/logo-algolia-nebula-blue-full.svg">
+            </a>
+            <i class="search-icon fa fa-search"></i>
+            <form id="algolia-search-form">
+                <input type="text" id="algolia-search-input" name="search"
+                    class="form-control input--large search-input" placeholder="Search "
+                    />
+            </form>
+        </div>
+        <div class="modal-body">
+            <div class="no-result text-color-light text-center">没有找到文章</div>
+            <div class="results">
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <h3 class="media-heading">js基础类型和引用类型</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月8日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <h3 class="media-heading">类型转换</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <h3 class="media-heading">深拷贝和浅拷贝</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>这属于面试的高频问题了，深浅拷贝的问题只针对于引用数据类型，对于基本数据类型并没有这样的问题。<br>为什么引用数据类型会出现这样的问题？<br>第一篇 js 数据类型中有提到，引用数据类型存放在堆中，栈中存放的是该引用类型的地址，以便能通过地址快速找到该引用数据。<br>所以在拷贝时就会出现只拷贝引用类型的地址和再在堆中开辟一个新的内存空间的两种拷贝方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <h3 class="media-heading">原型与原型链</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <h3 class="media-heading">继承</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <h3 class="media-heading">new关键词</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月21日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>大部分面试的时候，面试官先已原型链铺路，随后就会问你 new 关键词都做了些什么？也是为了下一个继承问题再次铺路！<br>那这篇文章我们就来讲讲这个 new！<br>我们通常在什么地方能看到它，在创建实例的时候，new 后面加上一个构造函数，就是创建这个构造函数的实例。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <h3 class="media-heading">作用域</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>何为作用域，查找度娘百科中是这么定义的：</p>
+<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <h3 class="media-heading">执行上下文</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <h3 class="media-heading">闭包</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月12日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <h3 class="media-heading">call、apply和bind</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月18日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>call、apply 和 bind 都是对 this 值得改变，那三者有什么不同呢？本篇通过模拟三者代码的形式来讲解。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="results-count text-medium"
+                data-message-zero="没有找到文章"
+                data-message-one="找到 1 篇文章"
+                data-message-other="找到 {n} 篇文章">
+                找到 12 篇文章
+            </p>
+        </div>
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+    
+<script src="/assets/js/moment-with-locales.js"></script>
+
+    
+<script src="/assets/js/algoliasearch.js"></script>
+
+    <script>
+      var algoliaClient = algoliasearch('2ILBT3HBZ2', '2f34a1f86e95da45573cd221c686a072');
+      var algoliaIndex = algoliaClient.initIndex('my-hexo-blog');
+    </script>
+
+
+    </body>
+</html>
