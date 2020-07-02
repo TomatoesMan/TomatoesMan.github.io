@@ -6,24 +6,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="Tomato&#39;s blog">
-    <title>作用域 - Tomato&#39;s blog</title>
+    <title>Generator - Tomato&#39;s blog</title>
     <meta name="author" content="TomatoMan">
     
     
     
-    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"何为作用域，查找度娘百科中是这么定义的：\n作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。\n\n\n1、静态作用域（词法作用域）通常来说 JS 是静态作用域，函数的作用域在函数定义的时候就已经确定了。可以举个例子：\n123456789var scope = 1;function foo() &#123;  console.log(scope);&#125;function bar() &#123;  var scope = 2;  foo();&#125;bar();\n\n最后输出为 1，因为 JS 是静态作用域，所以 foo 函数的作用域在其定义的时候就被确定了，当在 bar 函数中执行 foo()时，没有去查找 bar 中的 scope 变量，而是去查找 foo 函数中的 scope，当 foo 函数中没有找到这个变量的时候他会在全局中查找，所以最后输出 1。\n2、动态作用域函数的作用域在函数调用的时候才决定。其实大部分的语言都是基于静态作用域的，如果 JS 是动态作用域的话，那上述例子最后的结果应该是 2 而不是 1，因为当 foo()无法找到 scope 的变量引用时，会顺着调用栈在调用 foo()的地方查找 scope，而不是在嵌套的词法作用域链中向上查找。由于 foo()是在 bar()中调用的，引擎会检查 bar()的作用域，并在其中找到值为 2 的变量 scope。看到这里有没有感觉到这个动态作用域的工作原理像极了 JS 中的 this，关于 this 的机制我们将在后续中进行讲解。\n3、JS 的全局作用域、块级作用域、函数作用域3.1 全局作用域在 ES6 之前，JS 只有全局作用域和函数作用域，但是当全局作用域用的过多时就会发现一个大问题，就是全局污染，为了这个解决这个问题推出了好多方法：模块化、闭包、命名空间等等等等。什么是全局作用域？全局作用域即贯穿整个 JS 文档，在任何地方都能够访问到，JS 中有个全局对象 window，如声明一个全局变量，就相当于在 window 上添加一个属性。\n3.2 块级作用域块级作用域是 ES6 中才出现的新特性，通常使用的 let、const 都是显式声明块级作用域的方法。在《你不知道的 JavaScript》中对块级作用域的总结是这样的：块作用域指的是变量和函数不仅可以属于所处的作用域，也可以属于某个代码块（通常指 { .. } 内部）。其实我认为通俗的理解就是，在代码块中定义的变量或者函数，在其代码块外无法访问。\n3.3 函数作用域函数作用域即定义在函数代码块中的变量和函数，外部无法访问。举个栗子：\n1234567var a = 1;function foo() &#123;  var a = 2;  console.log(a);&#125;foo();console.log(a);\n\n运行上述结果可以的出结论，foo 函数运行完后在 foo 函数中输出的为 2，在全局上输出的为 1。但是这样并不是很理想，因为 foo 函数是挂载在全局中的，也会容易造成一个全局污染的问题，其次必须显式调用(foo())才能运行函数代码，还好 JS 给我们提供了一个解决这种问题的方法，即自执行函数。可以通过自执行函数将上面的例子进行改造：\n1234567var a = 1;(function foo() &#123;  var a = 2;  console.log(a);&#125;)();console.log(a);console.log(foo); // Uncaught ReferenceError: foo is not defined\n\n执行结果与之前相同，当查看 foo 函数时会报 foo 没有被定义的错误。foo 变量名被隐藏在自身中意味着不会非必要地污染外部作用域。\n","dateCreated":"2020-05-29T22:14:37+08:00","dateModified":"2020-06-25T20:03:40+08:00","datePublished":"2020-05-29T22:14:37+08:00","description":"何为作用域，查找度娘百科中是这么定义的：\n作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。","headline":"作用域","image":["https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/","keywords":"前端, javascript","thumbnailUrl":"https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&fm=26&gp=0.jpg"}</script>
-    <meta name="description" content="何为作用域，查找度娘百科中是这么定义的： 作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效&#x2F;可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。">
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"Generator 是 ES6 提出的一种异步编程的解决办法，它与传统的函数完全不同，本章从基础概念和基本用法进行讲解和解析。在此之前也是对 Generator 函数云里雾里，所以通过此次学习，希望能对 Generator 有更深的理解和认识。\n1.概念Generator 中文的意思是’生成器’，阮一峰：ECMAScript 6 入门中对 Generator 解释是：Generator 函数有多种理解角度。语法上，首先可以把它理解成，Generator 函数是一个状态机，封装了多个内部状态。\n\n\n执行 Generator 函数会返回一个遍历器对象，也就是说，Generator 函数除了状态机，还是一个遍历器对象生成函数。返回的遍历器对象，可以依次遍历 Generator 函数内部的每一个状态。Generator 有两个特点：第一个是在定义时，要在 function 关键字和函数名中加一个星号，第二个就是在函数体中运用 yeild 表达式表示不同的状态。\n123456function* foo() &#123;  yield \"a\";  yield \"b\";&#125;let f = foo();console.log(f);\n\n和普通函数不同的是，当运行这个函数时，返回不是这个函数的结果，而是一个遍历器对象，或者可以说是一个含有内部状态指针的对象。如果想输出值得话，要用 next 方法来进行输出。next 方法就是向下移动指针，即每次调用 next 方法，就是从函数头部或者从上一次 yield 表达式移动到下一次 yield 表达式（或者 return 为止）。\n12345678function* foo() &#123;  yield \"a\";  yield \"b\";&#125;let f = foo();f.next(); // &#123;value: \"a\", done: false&#125;f.next(); // &#123;value: \"b\", done: false&#125;f.next(); // &#123;value: undefined, done: true&#125;\n\n上述可以看出，调用 next 时输出的是一个对象，即 value 值代表 yield 后面的结果，done 代表遍历还没有结束，当遍历结束时，value 值都为 undefined，done 都为 true。\n2.yield 表达式yield 有个懒惰的特性，即 yield 后面的表达式，如果不调用 next 方法，是不会执行的。\n1234function* foo() &#123;  yield 1 + 1;&#125;foo().next(); // 2\n\n只有当 next 指针移动到该 yield 的时候，才会执行后面的表达式。yield 和 return 是有不同之处的，在 Generator 函数中，可以定义多个 yield 表达式，但是 return 只能定义一个，并且在 yield 中遍历还没有完成，但在遇到 return 时，遍历就终止了。\n12345678910function* foo() &#123;  yield \"a\";  yield \"b\";  return \"c\";&#125;let f = foo();f.next(); // &#123;value: \"a\", done: false&#125;f.next(); // &#123;value: \"b\", done: false&#125;f.next(); // &#123;value: \"c\", done: true&#125;f.next(); // &#123;value: undefined, done: true&#125;\n\n当遇到 return 时，遍历结束 done 为 true，value 值为 return 后的结果，在此之后的 next 的结果都为{value: undefined, done: true}。如果在 Generator 函数中没有 yield 表达式：\n12345function* foo() &#123;  console.log(\"a\");&#125;let f = foo();f.next();\n\nfoo()返回的依旧是一个含有内部状态指针的对象，只有当 next 方法执行时该函数才会执行。当 yield 和其他表达式融合时，如果 yield 表达式在左边，要将 yield 表达式用圆括号包裹，否则就会报语法错误。\n12345678function* foo() &#123;  console.log('a'+ yield 'b'); // Uncaught SyntaxError: Unexpected identifier&#125;function* foo() &#123;  console.log('a'+ (yield 'b')); // &#123;value: \"b\", done: false&#125;&#125;let f = foo();f.next();\n\n当用作函数参数或放在赋值表达式的右边，可以不加括号。\n1234function* demo() &#123;  foo(yield \"a\", yield \"b\"); // OK  let input = yield; // OK&#125;\n\n3.next 方法yield 是没有返回值的，它的返回值是 undefined，我们可以通过 next 方法将参数传递给 yield，此参数将会为 yield 的返回值。\n123456789101112function* f() &#123;  for (var i = 0; true; i++) &#123;    var reset = yield i;    if (reset) &#123;      i = -1;    &#125;  &#125;&#125;var g = f();g.next(); // &#123; value: 0, done: false &#125;g.next(); // &#123; value: 1, done: false &#125;g.next(true); // &#123; value: 0, done: false &#125;\n\n上面代码先定义了一个可以无限运行的 Generator 函数 f，如果 next 方法没有参数，每次运行到 yield 表达式，变量 reset 的值总是 undefined。当 next 方法带一个参数 true 时，变量 reset 就被重置为这个参数（即 true），因此 i 会等于-1，下一轮循环就会从-1 开始递增。不用 next 方法是否可以输出值呢？答案是可以的，可以用 for…of…方法遍历 Generator 函数。\n123456789101112function* foo() &#123;  yield 1;  yield 2;  yield 3;  yield 4;  yield 5;  return 6;&#125;for (let v of foo()) &#123;  console.log(v); // 1 2 3 4 5&#125;\n\n值得注意的是，for…of…在 done 为 ture 的时候就会终止执行，所以 return 后的 6 没有输出。\n4.yield* 表达式yield* 表达式是为了解决在一个 Generator 函数中调用另一个 Generator 函数所提供的方法。\n123456789101112131415function* foo() &#123;  yield 1;  yield 2;  yield 3;  yield* foo1();&#125;等同于;function* foo() &#123;  yield 1;  yield 2;  yield 3;  for (let v of foo1()) &#123;    yield v;  &#125;&#125;\n\n当 yield*后边的 Generator 函数中没有 return 时，作用就是 for…of…遍历 Generator 函数，如果 Generator 函数中有 return 时，则获取的是 return 值。\n12345678910111213141516function* foo() &#123;  yield 1;  yield 2;  yield 3;  var value = yield* foo1();  console.log(value);&#125;function* foo1() &#123;  yield 4;  return 5;&#125;let f = foo();f.next(); // &#123;value: 1, done: false&#125;f.next(); // &#123;value: 2, done: false&#125;f.next(); // &#123;value: 3, done: false&#125;f.next(); // 5 &#123;value: undefined, done: true&#125;\n\n其实 yield*后面只要是带有 Iterator 接口的都会被遍历。\n12345function* foo() &#123;  yield* [1, 2, 3, 4];&#125;let f = foo();f.next(); // &#123;value: 1, done: false&#125;\n\n再举个例子：\n123456789101112function* foo() &#123;  yield \"a\";  yield \"b\";  return \"END\";&#125;function* bar(func) &#123;  let result = yield* func();  console.log(result);&#125;[...bar(foo)];// END// [\"a\", \"b\"]\n\n上述中 foo 是拥有 return 表达式的函数，所以 return 后的结果会‘赋值’给 yield*表达式的返回值，所以 result 是’END’，并且拓展运算符默认调用 Iterator 接口，所以会先打印出 result，然后再执行 yield。\n参考：阮一峰：ECMAScript 6 入门\n","dateCreated":"2020-07-02T22:17:50+08:00","dateModified":"2020-07-02T22:24:15+08:00","datePublished":"2020-07-02T22:17:50+08:00","description":"Generator 是 ES6 提出的一种异步编程的解决办法，它与传统的函数完全不同，本章从基础概念和基本用法进行讲解和解析。在此之前也是对 Generator 函数云里雾里，所以通过此次学习，希望能对 Generator 有更深的理解和认识。\n1.概念Generator 中文的意思是’生成器’，阮一峰：ECMAScript 6 入门中对 Generator 解释是：Generator 函数有多种理解角度。语法上，首先可以把它理解成，Generator 函数是一个状态机，封装了多个内部状态。","headline":"Generator","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/07/02/Generator/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/07/02/Generator/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="Generator 是 ES6 提出的一种异步编程的解决办法，它与传统的函数完全不同，本章从基础概念和基本用法进行讲解和解析。在此之前也是对 Generator 函数云里雾里，所以通过此次学习，希望能对 Generator 有更深的理解和认识。 1.概念Generator 中文的意思是’生成器’，阮一峰：ECMAScript 6 入门中对 Generator 解释是：Generator 函数有多种">
 <meta property="og:type" content="blog">
-<meta property="og:title" content="作用域">
-<meta property="og:url" content="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/index.html">
+<meta property="og:title" content="Generator">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/07/02/Generator/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
-<meta property="og:description" content="何为作用域，查找度娘百科中是这么定义的： 作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效&#x2F;可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。">
+<meta property="og:description" content="Generator 是 ES6 提出的一种异步编程的解决办法，它与传统的函数完全不同，本章从基础概念和基本用法进行讲解和解析。在此之前也是对 Generator 函数云里雾里，所以通过此次学习，希望能对 Generator 有更深的理解和认识。 1.概念Generator 中文的意思是’生成器’，阮一峰：ECMAScript 6 入门中对 Generator 解释是：Generator 函数有多种">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-05-29T14:14:37.000Z">
-<meta property="article:modified_time" content="2020-06-25T12:03:40.106Z">
+<meta property="article:published_time" content="2020-07-02T14:17:50.000Z">
+<meta property="article:modified_time" content="2020-07-02T14:24:15.601Z">
 <meta property="article:author" content="TomatoMan">
-<meta property="article:tag" content="前端">
-<meta property="article:tag" content="javascript">
+<meta property="article:tag" content="ES6">
 <meta name="twitter:card" content="summary">
     
     
@@ -33,8 +32,8 @@
         <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
     
     
-        <meta property="og:image" content="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg"/>
-        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg"/>
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
     
     
     
@@ -237,20 +236,20 @@
         <div class="post-header main-content-wrap text-left">
     
         <h1 class="post-title">
-            作用域
+            Generator
         </h1>
     
     
         <div class="post-meta">
-    <time datetime="2020-05-29T22:14:37+08:00">
+    <time datetime="2020-07-02T22:17:50+08:00">
 	
-		    5月 29, 2020
+		    7月 02, 2020
     	
     </time>
     
         <span>发布在 </span>
         
-    <a class="category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
+    <a class="category-link" href="/categories/ES6/">ES6</a>
 
 
     
@@ -262,24 +261,53 @@
     
     <div class="post-content markdown">
         <div class="main-content-wrap">
-            <p>何为作用域，查找度娘百科中是这么定义的：</p>
-<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p>
+            <p>Generator 是 ES6 提出的一种异步编程的解决办法，它与传统的函数完全不同，本章从基础概念和基本用法进行讲解和解析。在此之前也是对 Generator 函数云里雾里，所以通过此次学习，希望能对 Generator 有更深的理解和认识。</p>
+<h2 id="1-概念"><a href="#1-概念" class="headerlink" title="1.概念"></a>1.概念</h2><p>Generator 中文的意思是’生成器’，<a href="https://es6.ruanyifeng.com/#docs/generator" target="_blank" rel="noopener">阮一峰：ECMAScript 6 入门</a>中对 Generator 解释是：<br>Generator 函数有多种理解角度。语法上，首先可以把它理解成，Generator 函数是一个状态机，封装了多个内部状态。</p>
 <a id="more"></a>
 
-<h2 id="1、静态作用域（词法作用域）"><a href="#1、静态作用域（词法作用域）" class="headerlink" title="1、静态作用域（词法作用域）"></a>1、静态作用域（词法作用域）</h2><p>通常来说 JS 是静态作用域，函数的作用域在函数定义的时候就已经确定了。<br>可以举个例子：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> scope = <span class="number">1</span>;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(scope);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">bar</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> scope = <span class="number">2</span>;</span><br><span class="line">  foo();</span><br><span class="line">&#125;</span><br><span class="line">bar();</span><br></pre></td></tr></table></figure>
+<p>执行 Generator 函数会返回一个遍历器对象，也就是说，Generator 函数除了状态机，还是一个遍历器对象生成函数。返回的遍历器对象，可以依次遍历 Generator 函数内部的每一个状态。<br>Generator 有两个特点：<br>第一个是在定义时，要在 function 关键字和函数名中加一个星号，第二个就是在函数体中运用 yeild 表达式表示不同的状态。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"a"</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"b"</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line"><span class="built_in">console</span>.log(f);</span><br></pre></td></tr></table></figure>
 
-<p>最后输出为 1，因为 JS 是静态作用域，所以 foo 函数的作用域在其定义的时候就被确定了，当在 bar 函数中执行 foo()时，没有去查找 bar 中的 scope 变量，而是去查找 foo 函数中的 scope，当 foo 函数中没有找到这个变量的时候他会在全局中查找，所以最后输出 1。</p>
-<h2 id="2、动态作用域"><a href="#2、动态作用域" class="headerlink" title="2、动态作用域"></a>2、动态作用域</h2><p>函数的作用域在函数调用的时候才决定。<br>其实大部分的语言都是基于静态作用域的，如果 JS 是动态作用域的话，那上述例子最后的结果应该是 2 而不是 1，因为当 foo()无法找到 scope 的变量引用时，会顺着调用栈在调用 foo()的地方查找 scope，而不是在嵌套的词法作用域链中向上查找。由于 foo()是在 bar()中调用的，引擎会检查 bar()的作用域，并在其中找到值为 2 的变量 scope。<br>看到这里有没有感觉到这个动态作用域的工作原理像极了 JS 中的 this，关于 this 的机制我们将在后续中进行讲解。</p>
-<h2 id="3、JS-的全局作用域、块级作用域、函数作用域"><a href="#3、JS-的全局作用域、块级作用域、函数作用域" class="headerlink" title="3、JS 的全局作用域、块级作用域、函数作用域"></a>3、JS 的全局作用域、块级作用域、函数作用域</h2><h3 id="3-1-全局作用域"><a href="#3-1-全局作用域" class="headerlink" title="3.1 全局作用域"></a>3.1 全局作用域</h3><p>在 ES6 之前，JS 只有全局作用域和函数作用域，但是当全局作用域用的过多时就会发现一个大问题，就是全局污染，为了这个解决这个问题推出了好多方法：模块化、闭包、命名空间等等等等。<br>什么是全局作用域？<br>全局作用域即贯穿整个 JS 文档，在任何地方都能够访问到，JS 中有个全局对象 window，如声明一个全局变量，就相当于在 window 上添加一个属性。</p>
-<h3 id="3-2-块级作用域"><a href="#3-2-块级作用域" class="headerlink" title="3.2 块级作用域"></a>3.2 块级作用域</h3><p>块级作用域是 ES6 中才出现的新特性，通常使用的 let、const 都是显式声明块级作用域的方法。<br>在《你不知道的 JavaScript》中对块级作用域的总结是这样的：块作用域指的是变量和函数不仅可以属于所处的作用域，也可以属于某个代码块（通常指 { .. } 内部）。<br>其实我认为通俗的理解就是，在代码块中定义的变量或者函数，在其代码块外无法访问。</p>
-<h3 id="3-3-函数作用域"><a href="#3-3-函数作用域" class="headerlink" title="3.3 函数作用域"></a>3.3 函数作用域</h3><p>函数作用域即定义在函数代码块中的变量和函数，外部无法访问。<br>举个栗子：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> a = <span class="number">2</span>;</span><br><span class="line">  <span class="built_in">console</span>.log(a);</span><br><span class="line">&#125;</span><br><span class="line">foo();</span><br><span class="line"><span class="built_in">console</span>.log(a);</span><br></pre></td></tr></table></figure>
+<p>和普通函数不同的是，当运行这个函数时，返回不是这个函数的结果，而是一个遍历器对象，或者可以说是一个含有内部状态指针的对象。<br>如果想输出值得话，要用 next 方法来进行输出。next 方法就是向下移动指针，即每次调用 next 方法，就是从函数头部或者从上一次 yield 表达式移动到下一次 yield 表达式（或者 return 为止）。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"a"</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"b"</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line">f.next(); <span class="comment">// &#123;value: "a", done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: "b", done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: undefined, done: true&#125;</span></span><br></pre></td></tr></table></figure>
 
-<p>运行上述结果可以的出结论，foo 函数运行完后在 foo 函数中输出的为 2，在全局上输出的为 1。但是这样并不是很理想，因为 foo 函数是挂载在全局中的，也会容易造成一个全局污染的问题，其次必须显式调用(foo())才能运行函数代码，还好 JS 给我们提供了一个解决这种问题的方法，即自执行函数。<br>可以通过自执行函数将上面的例子进行改造：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line">(<span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> a = <span class="number">2</span>;</span><br><span class="line">  <span class="built_in">console</span>.log(a);</span><br><span class="line">&#125;)();</span><br><span class="line"><span class="built_in">console</span>.log(a);</span><br><span class="line"><span class="built_in">console</span>.log(foo); <span class="comment">// Uncaught ReferenceError: foo is not defined</span></span><br></pre></td></tr></table></figure>
+<p>上述可以看出，调用 next 时输出的是一个对象，即 value 值代表 yield 后面的结果，done 代表遍历还没有结束，当遍历结束时，value 值都为 undefined，done 都为 true。</p>
+<h2 id="2-yield-表达式"><a href="#2-yield-表达式" class="headerlink" title="2.yield 表达式"></a>2.yield 表达式</h2><p>yield 有个懒惰的特性，即 yield 后面的表达式，如果不调用 next 方法，是不会执行的。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">1</span> + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line">foo().next(); <span class="comment">// 2</span></span><br></pre></td></tr></table></figure>
 
-<p>执行结果与之前相同，当查看 foo 函数时会报 foo 没有被定义的错误。foo 变量名被隐藏在自身中意味着不会非必要地污染外部作用域。</p>
+<p>只有当 next 指针移动到该 yield 的时候，才会执行后面的表达式。<br>yield 和 return 是有不同之处的，在 Generator 函数中，可以定义多个 yield 表达式，但是 return 只能定义一个，并且在 yield 中遍历还没有完成，但在遇到 return 时，遍历就终止了。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"a"</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"b"</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="string">"c"</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line">f.next(); <span class="comment">// &#123;value: "a", done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: "b", done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: "c", done: true&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: undefined, done: true&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>当遇到 return 时，遍历结束 done 为 true，value 值为 return 后的结果，在此之后的 next 的结果都为{value: undefined, done: true}。<br>如果在 Generator 函数中没有 yield 表达式：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">"a"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line">f.next();</span><br></pre></td></tr></table></figure>
+
+<p>foo()返回的依旧是一个含有内部状态指针的对象，只有当 next 方法执行时该函数才会执行。<br>当 yield 和其他表达式融合时，如果 yield 表达式在左边，要将 yield 表达式用圆括号包裹，否则就会报语法错误。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'a'</span>+ <span class="keyword">yield</span> <span class="string">'b'</span>); <span class="comment">// Uncaught SyntaxError: Unexpected identifier</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'a'</span>+ (<span class="keyword">yield</span> <span class="string">'b'</span>)); <span class="comment">// &#123;value: "b", done: false&#125;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line">f.next();</span><br></pre></td></tr></table></figure>
+
+<p>当用作函数参数或放在赋值表达式的右边，可以不加括号。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">demo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  foo(<span class="keyword">yield</span> <span class="string">"a"</span>, <span class="keyword">yield</span> <span class="string">"b"</span>); <span class="comment">// OK</span></span><br><span class="line">  <span class="keyword">let</span> input = <span class="keyword">yield</span>; <span class="comment">// OK</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-next-方法"><a href="#3-next-方法" class="headerlink" title="3.next 方法"></a>3.next 方法</h2><p>yield 是没有返回值的，它的返回值是 undefined，我们可以通过 next 方法将参数传递给 yield，此参数将会为 yield 的返回值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">f</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; <span class="literal">true</span>; i++) &#123;</span><br><span class="line">    <span class="keyword">var</span> reset = <span class="keyword">yield</span> i;</span><br><span class="line">    <span class="keyword">if</span> (reset) &#123;</span><br><span class="line">      i = <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">var</span> g = f();</span><br><span class="line">g.next(); <span class="comment">// &#123; value: 0, done: false &#125;</span></span><br><span class="line">g.next(); <span class="comment">// &#123; value: 1, done: false &#125;</span></span><br><span class="line">g.next(<span class="literal">true</span>); <span class="comment">// &#123; value: 0, done: false &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码先定义了一个可以无限运行的 Generator 函数 f，如果 next 方法没有参数，每次运行到 yield 表达式，变量 reset 的值总是 undefined。当 next 方法带一个参数 true 时，变量 reset 就被重置为这个参数（即 true），因此 i 会等于-1，下一轮循环就会从-1 开始递增。<br>不用 next 方法是否可以输出值呢？答案是可以的，可以用 for…of…方法遍历 Generator 函数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">4</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">5</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">6</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> v <span class="keyword">of</span> foo()) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(v); <span class="comment">// 1 2 3 4 5</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的是，for…of…在 done 为 ture 的时候就会终止执行，所以 return 后的 6 没有输出。</p>
+<h2 id="4-yield-表达式"><a href="#4-yield-表达式" class="headerlink" title="4.yield* 表达式"></a>4.yield* 表达式</h2><p>yield* 表达式是为了解决在一个 Generator 函数中调用另一个 Generator 函数所提供的方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">yield</span>* foo1();</span><br><span class="line">&#125;</span><br><span class="line">等同于;</span><br><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">let</span> v <span class="keyword">of</span> foo1()) &#123;</span><br><span class="line">    <span class="keyword">yield</span> v;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当 yield*后边的 Generator 函数中没有 return 时，作用就是 for…of…遍历 Generator 函数，如果 Generator 函数中有 return 时，则获取的是 return 值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">var</span> value = <span class="keyword">yield</span>* foo1();</span><br><span class="line">  <span class="built_in">console</span>.log(value);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo1</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">4</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">5</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line">f.next(); <span class="comment">// &#123;value: 1, done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: 2, done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// &#123;value: 3, done: false&#125;</span></span><br><span class="line">f.next(); <span class="comment">// 5 &#123;value: undefined, done: true&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>其实 yield*后面只要是带有 Iterator 接口的都会被遍历。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span>* [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> f = foo();</span><br><span class="line">f.next(); <span class="comment">// &#123;value: 1, done: false&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>再举个例子：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"a"</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"b"</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="string">"END"</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">bar</span>(<span class="params">func</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> result = <span class="keyword">yield</span>* func();</span><br><span class="line">  <span class="built_in">console</span>.log(result);</span><br><span class="line">&#125;</span><br><span class="line">[...bar(foo)];</span><br><span class="line"><span class="comment">// END</span></span><br><span class="line"><span class="comment">// ["a", "b"]</span></span><br></pre></td></tr></table></figure>
+
+<p>上述中 foo 是拥有 return 表达式的函数，所以 return 后的结果会‘赋值’给 yield*表达式的返回值，所以 result 是’END’，并且拓展运算符默认调用 Iterator 接口，所以会先打印出 result，然后再执行 yield。</p>
+<p>参考：<br><a href="https://es6.ruanyifeng.com/#docs/generator" target="_blank" rel="noopener">阮一峰：ECMAScript 6 入门</a></p>
 
             
 
@@ -291,7 +319,7 @@
             <div class="post-footer-tags">
                 <span class="text-color-light text-small">标签</span><br/>
                 
-    <a class="tag tag--primary tag--small t-link" href="/tags/javascript/" rel="tag">javascript</a> <a class="tag tag--primary tag--small t-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a>
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
 
             </div>
         
@@ -301,14 +329,11 @@
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    
-                <a
-                    class="post-action-btn btn btn--default tooltip--top"
-                    href="/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
-                    data-tooltip="执行上下文"
-                    aria-label="上一篇: 执行上下文"
-                >
-                    
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
                         <i class="fa fa-angle-left" aria-hidden="true"></i>
                         <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
                     </a>
@@ -318,9 +343,9 @@
                     
                 <a
                     class="post-action-btn btn btn--default tooltip--top"
-                    href="/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
-                    data-tooltip="new关键词"
-                    aria-label="下一篇: new关键词"
+                    href="/2020/06/28/Promise/"
+                    data-tooltip="Promise"
+                    aria-label="下一篇: Promise"
                 >
                     
                         <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
@@ -345,7 +370,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/02/Generator/"
                     title="分享到 Facebook"
                     aria-label="分享到 Facebook"
                 >
@@ -358,7 +383,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/02/Generator/"
                     title="分享到 Twitter"
                     aria-label="分享到 Twitter"
                 >
@@ -371,7 +396,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/02/Generator/"
                     title="分享到 Google+"
                     aria-label="分享到 Google+"
                 >
@@ -416,14 +441,11 @@
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    
-                <a
-                    class="post-action-btn btn btn--default tooltip--top"
-                    href="/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
-                    data-tooltip="执行上下文"
-                    aria-label="上一篇: 执行上下文"
-                >
-                    
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
                         <i class="fa fa-angle-left" aria-hidden="true"></i>
                         <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
                     </a>
@@ -433,9 +455,9 @@
                     
                 <a
                     class="post-action-btn btn btn--default tooltip--top"
-                    href="/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
-                    data-tooltip="new关键词"
-                    aria-label="下一篇: new关键词"
+                    href="/2020/06/28/Promise/"
+                    data-tooltip="Promise"
+                    aria-label="下一篇: Promise"
                 >
                     
                         <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
@@ -460,7 +482,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/02/Generator/"
                     title="分享到 Facebook"
                     aria-label="分享到 Facebook"
                 >
@@ -473,7 +495,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/02/Generator/"
                     title="分享到 Twitter"
                     aria-label="分享到 Twitter"
                 >
@@ -486,7 +508,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/02/Generator/"
                     title="分享到 Google+"
                     aria-label="分享到 Google+"
                 >
@@ -520,7 +542,7 @@
                     <a
                         class="share-option-btn"
                         target="new"
-                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/02/Generator/"
                         aria-label="分享到 Facebook"
                     >
                         <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
@@ -533,7 +555,7 @@
                     <a
                         class="share-option-btn"
                         target="new"
-                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/02/Generator/"
                         aria-label="分享到 Twitter"
                     >
                         <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
@@ -546,7 +568,7 @@
                     <a
                         class="share-option-btn"
                         target="new"
-                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/02/Generator/"
                         aria-label="分享到 Google+"
                     >
                         <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
