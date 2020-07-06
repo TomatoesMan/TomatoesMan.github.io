@@ -6,24 +6,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="generator" content="Tomato&#39;s blog">
-    <title>js基础类型和引用类型 - Tomato&#39;s blog</title>
+    <title>Async和Await - Tomato&#39;s blog</title>
     <meta name="author" content="TomatoMan">
     
     
     
-    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型\n\n\n1、什么是基础类型（值类型、原始类型）保存在栈中的类型就是基础类型，原因是基础类型存储的空间很小，存放在栈中方便查找，且不易于改变\njs 中的基础类型（值类型、原始类型）有哪些12Undefined、Null、Boolean、Number、String、Symbol（ES6中新加类型）// undefined和null是所有类型的子类型\n\n2、什么是引用类型指有多个值构成的对象，引用数据类型是存储在堆中，也就是说存储的变量处的值是一个指针，指向存储对象的内存地址。存在堆中的原因是：引用值的大小会改变，所以不能放在栈中，否则会降低变量查询的速度\njs 中的引用类型有哪些1Object;\n\n3、如何判断类型3.1 typeof具体使用：\n12345678910111213console.log(typeof a); //'undefined'console.log(typeof true); //'boolean'console.log(typeof \"123\"); //'string'console.log(typeof 123); //'number'console.log(typeof NaN); //'number'console.log(typeof null); //'object'let obj = new String();console.log(typeof obj); //'object'let fn = function () &#123;&#125;;console.log(typeof fn); //'function'console.log(typeof class c &#123;&#125;); //'function'let sym = Symbol();console.log(typeof sym); //'symbol'\n\n实现原理如下：\n1不同的对象在底层都表示为二进制， 在 JavaScript 中二进制前三位都为 0 的话会被判断为 object 类型， null 的二进制表示是全 0， 自然前三位也是 0， 所以执行 typeof 时会返回“object”。\n\n所以 typeof null 的返回值是 object，这是个“历史遗留问题”。因为 typeof 判断引用类型时不太准确，所以我们选用其他方法。\n3.2 instanceof通常来说，instanceof 是判断一个实例是否属于某种类型具体使用：\n123456console.log(1 instanceof Number); //falseconsole.log(\"1\" instanceof String); //falseconsole.log(true instanceof Boolean); //falseconsole.log(function Foo() &#123;&#125; instanceof Function); //trueconsole.log(&#123;&#125; instanceof Object); //trueconsole.log([] instanceof Array); //true\n\n从以上结果可以看出，instanceof 对引用类型来说判断的非常准确，但是对于基础类型却不能精准的判断。原因是 instanceof 运算符用来测试一个对象在其原型链中是否存在一个构造函数的 prototype 属性。其意思就是判断对象是否是某一数据类型的实例，1、‘1’、true 并不是实例，所以为 false。如下所示：\n123console.log(new Number(1) instanceof Number); //trueconsole.log(new String(\"1\") instanceof String); //trueconsole.log(new Boolean(true) instanceof Boolean); //true\n\n但是对 undefined 和 null，却比较特殊\n12console.log(new null() instanceof Null); //Uncaught TypeError: null is not a constructorconsole.log(new undefined() instanceof Undefined); //Uncaught TypeError: undefined is not a constructor\n\n原因是因为 undefined 和 null 并不是构造函数\n3.3 constructor具体使用：\n123456console.log((1).constructor === Number); //trueconsole.log(\"1\".constructor === String); //trueconsole.log(true.constructor === Boolean); //trueconsole.log([].constructor === Array); //trueconsole.log(&#123;&#125;.constructor === Object); //trueconsole.log(function Foo() &#123;&#125;.constructor === Function); //true\n\n看着貌似很准确的样子，但是还是有缺陷，当创建一个对象改变他的原型的时候，就不再准确了！\n1234function Foo() &#123;&#125;Foo.prototype = new Array();let foo = new Foo();console.log(foo.constructor === Array); //true\n\n这是因为 js 每个函数都有一个 prototype 属性，指向原型对象，对象.prototype.constructor 指向的是该对象的构造函数，当把该对象的原型对象更改时，该函数的构造对象也会更改，所以就会出现如上的问题\n3.4 Object.prototype.toString.call()具体使用：\n123456789console.log(Object.prototype.toString.call(1)); //[object Number]console.log(Object.prototype.toString.call(\"1\")); //[object String]console.log(Object.prototype.toString.call(true)); //[object Boolean]console.log(Object.prototype.toString.call([])); //[object Array]console.log(Object.prototype.toString.call(&#123;&#125;)); //[object Object]console.log(Object.prototype.toString.call(function Foo() &#123;&#125;)); //[object Function]console.log(Object.prototype.toString.call(undefined)); //[object Undefined]console.log(Object.prototype.toString.call(null)); //[object Null]console.log(Object.prototype.toString.call(Symbol())); //[object Symbol]\n\n这是最准确的类型判定的方法，就算改变原型也不会有问题。具体分析一下这个方法背后的故事：每个 Object 原型上都有一个 toString 的方法，当调用这个方法的时候会执行三个步骤：1、获取对象的类名（对象类型）2、将[object、获取的对象类型]组合为字符串3、返回字符串\n为什么要用 call 方法？因为 Array、String 等类型都对其继承下来原型上的 toSring 方法进行了重写，无法返回我们想要的结果，所以我们通过 call 方法，将 Object.prototype.toString 上的 Object 的指向改变，才能对类型进行精准的判断。\nObject.toString 和 Object.prototype.toString 的区别？Object.toString 是 Object 构造器的方法，返回的是函数\n1Object.toString(&#123;&#125;); //\"function Object() &#123; [native code] &#125;\"\n\nObject.prototype.toString 是 Object 原型上的方法，返回的是类型字符串，才是我们想要的结果\n1Object.prototype.toString(&#123;&#125;); //\"[object Object]\"\n","dateCreated":"2020-04-08T22:14:00+08:00","dateModified":"2020-06-25T19:52:41+08:00","datePublished":"2020-04-08T22:14:00+08:00","description":"开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型","headline":"js基础类型和引用类型","image":["https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1593095782575&di=0f02fa07eb8c80304015e32141a07c1f&imgtype=0&src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/","keywords":"前端, javascript","thumbnailUrl":"https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1593095782575&di=0f02fa07eb8c80304015e32141a07c1f&imgtype=0&src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"}</script>
-    <meta name="description" content="开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型">
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"async 是 ES7 提出的新特性，说白了就是 Generator 的语法糖。既然是语法糖，那我们首先说一下它的改进之处。\n1、async 对 Generator 的改进\n\n1.1、写法改进12345678Generator函数;function* foo() &#123;  yield \"b\";&#125;Async函数;async function foo() &#123;  await \"b\";&#125;\n\n对比发现，async 函数在写法上，是将 Generator 函数的星号换成了 async 关键词，yield 关键词换成了 await。\n1.2、 内置执行器Generator 函数的执行必须依靠执行器，而 async 函数自带执行器。所以 async 函数不用像 Generator 函数一样要用 next 方法才会执行，完全可以跟普通函数一样。\n1.3、 更好的实用性co 模块约定，yield 命令后面只能是 Thunk 函数或 Promise 对象，而 async 函数的 await 命令后面，可以是 Promise 对象和原始类型的值（数值、字符串和布尔值，但这时会自动转成立即 resolved 的 Promise 对象）。\n1.4、 返回值为 Promiseasync 函数返回的是一个 Promise 对象，可以试用 then 方法，不像 Generator 函数返回的是一个 Iterator 对象。\n2、async 基本用法async 函数返回一个 Promise 对象，可以使用 then 方法添加回调函数。当函数执行的时候，一旦遇到 await 就会先返回，等到异步操作完成，再接着执行函数体内后面的语句，并且 await 必须要在 async 函数中，不然就会报错。\n12345async function foo() &#123;  let result = await \"b\";  return result;&#125;foo().then((value) =&gt; console.log(value)); // 6\n\n上述可以看出，async 函数中 return 语句返回的值，会成为 then 回调函数的参数。当 async 函数中抛出错误时，会作为 catch 函数的参数传入。\n1234async function foo() &#123;  throw new Error(\"出错\");&#125;foo().catch((err) =&gt; console.log(err)); // Error: 出错\n\n3、await 表达式通常来说 await 后边大部分都是 Promise 对象，当时 Promise 对象时，返回的是 Promise 对象 resolved 状态下的结果，如果是基本数据类型时，就是直接返回该结果。\n12345async function foo() &#123;  let result = await new Promise((resolve) =&gt; resolve(1));  return result;&#125;foo().then((value) =&gt; console.log(value)); // 1\n\n当 await 后边是一个 thenable 对象是，会被当做是 Promise 对象一样处理。\n123456789let thenable = &#123;  name: \"Jack\",  then: (resolve) =&gt; resolve(\"2\"),&#125;;async function foo() &#123;  let result = await thenable;  return result;&#125;foo().then((value) =&gt; console.log(value)); // 2\n\nawait 后面的 Promise 对象出现错误时：\n1234567async function foo() &#123;  await Promise.reject(\"出错了\");  await Promise.resolve(\"1\");&#125;foo()  .then((value) =&gt; console.log(value))  .catch((err) =&gt; console.log(err)); // 出错了\n\n当有多个 await 时，只要其中一个 await 后的 Promise 报错，那该表达式之后的所有语句将不再执行。如果想要执行之后的语句的话，可以使用 try…catch…\n1234567891011async function foo() &#123;  try &#123;    await Promise.reject(\"出错了\");  &#125; catch (err) &#123;    console.log(err); // 出错了  &#125;  return await Promise.resolve(\"1\");&#125;foo()  .then((value) =&gt; console.log(value)) // 1  .catch((err) =&gt; console.log(err));\n\n除此之外还有一种方法：\n1234567async function foo() &#123;  await Promise.reject(\"出错了\").catch((err) =&gt; console.log(err)); // 出错了  return await Promise.resolve(\"1\");&#125;foo()  .then((value) =&gt; console.log(value)) // 1  .catch((err) =&gt; console.log(err));\n\n因为 catch 抓的是它之前的错误。值得注意的是，如果有多个 await 时，这几个 await 并不是同时触发，而是继发，即上一条 await 后的 Promise 成功后再触发下一条 await，如果想同时触发的话，可选用 Promise.all 方法。\n1234567async function foo() &#123;  let [a, b] = await Promise.all([    new Promise((resolve) =&gt; resolve(1)),    new Promise((resolve) =&gt; resolve(2)),  ]);  return [a, b];&#125;\n","dateCreated":"2020-07-06T22:14:10+08:00","dateModified":"2020-07-06T22:16:04+08:00","datePublished":"2020-07-06T22:14:10+08:00","description":"async 是 ES7 提出的新特性，说白了就是 Generator 的语法糖。既然是语法糖，那我们首先说一下它的改进之处。\n1、async 对 Generator 的改进","headline":"Async和Await","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="async 是 ES7 提出的新特性，说白了就是 Generator 的语法糖。既然是语法糖，那我们首先说一下它的改进之处。 1、async 对 Generator 的改进">
 <meta property="og:type" content="blog">
-<meta property="og:title" content="js基础类型和引用类型">
-<meta property="og:url" content="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/index.html">
+<meta property="og:title" content="Async和Await">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/index.html">
 <meta property="og:site_name" content="Tomato&#39;s blog">
-<meta property="og:description" content="开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型">
+<meta property="og:description" content="async 是 ES7 提出的新特性，说白了就是 Generator 的语法糖。既然是语法糖，那我们首先说一下它的改进之处。 1、async 对 Generator 的改进">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-04-08T14:14:00.000Z">
-<meta property="article:modified_time" content="2020-06-25T11:52:41.341Z">
+<meta property="article:published_time" content="2020-07-06T14:14:10.000Z">
+<meta property="article:modified_time" content="2020-07-06T14:16:04.669Z">
 <meta property="article:author" content="TomatoMan">
-<meta property="article:tag" content="前端">
-<meta property="article:tag" content="javascript">
+<meta property="article:tag" content="ES6">
 <meta name="twitter:card" content="summary">
     
     
@@ -33,8 +32,8 @@
         <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
     
     
-        <meta property="og:image" content="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"/>
-        <meta class="swiftype" name="image" data-type="enum" content="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg"/>
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
     
     
     
@@ -237,20 +236,20 @@
         <div class="post-header main-content-wrap text-left">
     
         <h1 class="post-title">
-            js基础类型和引用类型
+            Async和Await
         </h1>
     
     
         <div class="post-meta">
-    <time datetime="2020-04-08T22:14:00+08:00">
+    <time datetime="2020-07-06T22:14:10+08:00">
 	
-		    4月 08, 2020
+		    7月 06, 2020
     	
     </time>
     
         <span>发布在 </span>
         
-    <a class="category-link" href="/categories/JS%E5%9F%BA%E7%A1%80/">JS基础</a>
+    <a class="category-link" href="/categories/ES6/">ES6</a>
 
 
     
@@ -262,49 +261,38 @@
     
     <div class="post-content markdown">
         <div class="main-content-wrap">
-            <p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p>
-<a id="more"></a>
+            <p>async 是 ES7 提出的新特性，说白了就是 Generator 的语法糖。<br>既然是语法糖，那我们首先说一下它的改进之处。</p>
+<h2 id="1、async-对-Generator-的改进"><a href="#1、async-对-Generator-的改进" class="headerlink" title="1、async 对 Generator 的改进"></a>1、async 对 Generator 的改进</h2><a id="more"></a>
 
-<h2 id="1、什么是基础类型（值类型、原始类型）"><a href="#1、什么是基础类型（值类型、原始类型）" class="headerlink" title="1、什么是基础类型（值类型、原始类型）"></a>1、什么是基础类型（值类型、原始类型）</h2><p>保存在栈中的类型就是基础类型，原因是基础类型存储的空间很小，存放在栈中方便查找，且不易于改变</p>
-<h3 id="js-中的基础类型（值类型、原始类型）有哪些"><a href="#js-中的基础类型（值类型、原始类型）有哪些" class="headerlink" title="js 中的基础类型（值类型、原始类型）有哪些"></a>js 中的基础类型（值类型、原始类型）有哪些</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Undefined、Null、<span class="built_in">Boolean</span>、<span class="built_in">Number</span>、<span class="built_in">String</span>、<span class="built_in">Symbol</span>（ES6中新加类型）</span><br><span class="line"><span class="comment">// undefined和null是所有类型的子类型</span></span><br></pre></td></tr></table></figure>
+<h4 id="1-1、写法改进"><a href="#1-1、写法改进" class="headerlink" title="1.1、写法改进"></a>1.1、写法改进</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Generator函数;</span><br><span class="line"><span class="function"><span class="keyword">function</span>* <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"b"</span>;</span><br><span class="line">&#125;</span><br><span class="line">Async函数;</span><br><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">await</span> <span class="string">"b"</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h2 id="2、什么是引用类型"><a href="#2、什么是引用类型" class="headerlink" title="2、什么是引用类型"></a>2、什么是引用类型</h2><p>指有多个值构成的对象，引用数据类型是存储在堆中，也就是说存储的变量处的值是一个指针，指向存储对象的内存地址。存在堆中的原因是：引用值的大小会改变，所以不能放在栈中，否则会降低变量查询的速度</p>
-<h3 id="js-中的引用类型有哪些"><a href="#js-中的引用类型有哪些" class="headerlink" title="js 中的引用类型有哪些"></a>js 中的引用类型有哪些</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Object</span>;</span><br></pre></td></tr></table></figure>
+<p>对比发现，async 函数在写法上，是将 Generator 函数的星号换成了 async 关键词，yield 关键词换成了 await。</p>
+<h4 id="1-2、-内置执行器"><a href="#1-2、-内置执行器" class="headerlink" title="1.2、 内置执行器"></a>1.2、 内置执行器</h4><p>Generator 函数的执行必须依靠执行器，而 async 函数自带执行器。所以 async 函数不用像 Generator 函数一样要用 next 方法才会执行，完全可以跟普通函数一样。</p>
+<h4 id="1-3、-更好的实用性"><a href="#1-3、-更好的实用性" class="headerlink" title="1.3、 更好的实用性"></a>1.3、 更好的实用性</h4><p>co 模块约定，yield 命令后面只能是 Thunk 函数或 Promise 对象，而 async 函数的 await 命令后面，可以是 Promise 对象和原始类型的值（数值、字符串和布尔值，但这时会自动转成立即 resolved 的 Promise 对象）。</p>
+<h4 id="1-4、-返回值为-Promise"><a href="#1-4、-返回值为-Promise" class="headerlink" title="1.4、 返回值为 Promise"></a>1.4、 返回值为 Promise</h4><p>async 函数返回的是一个 Promise 对象，可以试用 then 方法，不像 Generator 函数返回的是一个 Iterator 对象。</p>
+<h2 id="2、async-基本用法"><a href="#2、async-基本用法" class="headerlink" title="2、async 基本用法"></a>2、async 基本用法</h2><p>async 函数返回一个 Promise 对象，可以使用 then 方法添加回调函数。当函数执行的时候，一旦遇到 await 就会先返回，等到异步操作完成，再接着执行函数体内后面的语句，并且 await 必须要在 async 函数中，不然就会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> result = <span class="keyword">await</span> <span class="string">"b"</span>;</span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line">foo().then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)); <span class="comment">// 6</span></span><br></pre></td></tr></table></figure>
 
-<h2 id="3、如何判断类型"><a href="#3、如何判断类型" class="headerlink" title="3、如何判断类型"></a>3、如何判断类型</h2><h3 id="3-1-typeof"><a href="#3-1-typeof" class="headerlink" title="3.1 typeof"></a>3.1 typeof</h3><p>具体使用：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> a); <span class="comment">//'undefined'</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> <span class="literal">true</span>); <span class="comment">//'boolean'</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> <span class="string">"123"</span>); <span class="comment">//'string'</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> <span class="number">123</span>); <span class="comment">//'number'</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> <span class="literal">NaN</span>); <span class="comment">//'number'</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> <span class="literal">null</span>); <span class="comment">//'object'</span></span><br><span class="line"><span class="keyword">let</span> obj = <span class="keyword">new</span> <span class="built_in">String</span>();</span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> obj); <span class="comment">//'object'</span></span><br><span class="line"><span class="keyword">let</span> fn = <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;&#125;;</span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> fn); <span class="comment">//'function'</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> <span class="class"><span class="keyword">class</span> <span class="title">c</span> </span>&#123;&#125;); <span class="comment">//'function'</span></span><br><span class="line"><span class="keyword">let</span> sym = <span class="built_in">Symbol</span>();</span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">typeof</span> sym); <span class="comment">//'symbol'</span></span><br></pre></td></tr></table></figure>
+<p>上述可以看出，async 函数中 return 语句返回的值，会成为 then 回调函数的参数。<br>当 async 函数中抛出错误时，会作为 catch 函数的参数传入。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"出错"</span>);</span><br><span class="line">&#125;</span><br><span class="line">foo().catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)); <span class="comment">// Error: 出错</span></span><br></pre></td></tr></table></figure>
 
-<p>实现原理如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">不同的对象在底层都表示为二进制， 在 JavaScript 中二进制前三位都为 0 的话会被判断为 object 类型， null 的二进制表示是全 0， 自然前三位也是 0， 所以执行 typeof 时会返回“object”。</span><br></pre></td></tr></table></figure>
+<h2 id="3、await-表达式"><a href="#3、await-表达式" class="headerlink" title="3、await 表达式"></a>3、await 表达式</h2><p>通常来说 await 后边大部分都是 Promise 对象，当时 Promise 对象时，返回的是 Promise 对象 resolved 状态下的结果，如果是基本数据类型时，就是直接返回该结果。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> result = <span class="keyword">await</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> resolve(<span class="number">1</span>));</span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line">foo().then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)); <span class="comment">// 1</span></span><br></pre></td></tr></table></figure>
 
-<p>所以 typeof null 的返回值是 object，这是个“历史遗留问题”。<br>因为 typeof 判断引用类型时不太准确，所以我们选用其他方法。</p>
-<h3 id="3-2-instanceof"><a href="#3-2-instanceof" class="headerlink" title="3.2 instanceof"></a>3.2 instanceof</h3><p>通常来说，instanceof 是判断一个实例是否属于某种类型<br>具体使用：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="number">1</span> <span class="keyword">instanceof</span> <span class="built_in">Number</span>); <span class="comment">//false</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="string">"1"</span> <span class="keyword">instanceof</span> <span class="built_in">String</span>); <span class="comment">//false</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="literal">true</span> <span class="keyword">instanceof</span> <span class="built_in">Boolean</span>); <span class="comment">//false</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="function"><span class="keyword">function</span> <span class="title">Foo</span>(<span class="params"></span>) </span>&#123;&#125; <span class="keyword">instanceof</span> <span class="built_in">Function</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(&#123;&#125; <span class="keyword">instanceof</span> <span class="built_in">Object</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log([] <span class="keyword">instanceof</span> <span class="built_in">Array</span>); <span class="comment">//true</span></span><br></pre></td></tr></table></figure>
+<p>当 await 后边是一个 thenable 对象是，会被当做是 Promise 对象一样处理。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> thenable = &#123;</span><br><span class="line">  name: <span class="string">"Jack"</span>,</span><br><span class="line">  then: <span class="function">(<span class="params">resolve</span>) =&gt;</span> resolve(<span class="string">"2"</span>),</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> result = <span class="keyword">await</span> thenable;</span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line">foo().then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)); <span class="comment">// 2</span></span><br></pre></td></tr></table></figure>
 
-<p>从以上结果可以看出，instanceof 对引用类型来说判断的非常准确，但是对于基础类型却不能精准的判断。原因是 instanceof 运算符用来测试一个对象在其原型链中是否存在一个构造函数的 prototype 属性。其意思就是判断对象是否是某一数据类型的实例，1、‘1’、true 并不是实例，所以为 false。<br>如下所示：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="keyword">new</span> <span class="built_in">Number</span>(<span class="number">1</span>) <span class="keyword">instanceof</span> <span class="built_in">Number</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">new</span> <span class="built_in">String</span>(<span class="string">"1"</span>) <span class="keyword">instanceof</span> <span class="built_in">String</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">new</span> <span class="built_in">Boolean</span>(<span class="literal">true</span>) <span class="keyword">instanceof</span> <span class="built_in">Boolean</span>); <span class="comment">//true</span></span><br></pre></td></tr></table></figure>
+<p>await 后面的 Promise 对象出现错误时：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">await</span> <span class="built_in">Promise</span>.reject(<span class="string">"出错了"</span>);</span><br><span class="line">  <span class="keyword">await</span> <span class="built_in">Promise</span>.resolve(<span class="string">"1"</span>);</span><br><span class="line">&#125;</span><br><span class="line">foo()</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value))</span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)); <span class="comment">// 出错了</span></span><br></pre></td></tr></table></figure>
 
-<p>但是对 undefined 和 null，却比较特殊</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="keyword">new</span> <span class="literal">null</span>() <span class="keyword">instanceof</span> Null); <span class="comment">//Uncaught TypeError: null is not a constructor</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="keyword">new</span> <span class="literal">undefined</span>() <span class="keyword">instanceof</span> Undefined); <span class="comment">//Uncaught TypeError: undefined is not a constructor</span></span><br></pre></td></tr></table></figure>
+<p>当有多个 await 时，只要其中一个 await 后的 Promise 报错，那该表达式之后的所有语句将不再执行。如果想要执行之后的语句的话，可以使用 try…catch…</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">await</span> <span class="built_in">Promise</span>.reject(<span class="string">"出错了"</span>);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (err) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(err); <span class="comment">// 出错了</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">await</span> <span class="built_in">Promise</span>.resolve(<span class="string">"1"</span>);</span><br><span class="line">&#125;</span><br><span class="line">foo()</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)) <span class="comment">// 1</span></span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err));</span><br></pre></td></tr></table></figure>
 
-<p>原因是因为 undefined 和 null 并不是构造函数</p>
-<h3 id="3-3-constructor"><a href="#3-3-constructor" class="headerlink" title="3.3 constructor"></a>3.3 constructor</h3><p>具体使用：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log((<span class="number">1</span>).constructor === <span class="built_in">Number</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="string">"1"</span>.constructor === <span class="built_in">String</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="literal">true</span>.constructor === <span class="built_in">Boolean</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log([].constructor === <span class="built_in">Array</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(&#123;&#125;.constructor === <span class="built_in">Object</span>); <span class="comment">//true</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="function"><span class="keyword">function</span> <span class="title">Foo</span>(<span class="params"></span>) </span>&#123;&#125;.constructor === <span class="built_in">Function</span>); <span class="comment">//true</span></span><br></pre></td></tr></table></figure>
+<p>除此之外还有一种方法：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">await</span> <span class="built_in">Promise</span>.reject(<span class="string">"出错了"</span>).catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err)); <span class="comment">// 出错了</span></span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">await</span> <span class="built_in">Promise</span>.resolve(<span class="string">"1"</span>);</span><br><span class="line">&#125;</span><br><span class="line">foo()</span><br><span class="line">  .then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value)) <span class="comment">// 1</span></span><br><span class="line">  .catch(<span class="function">(<span class="params">err</span>) =&gt;</span> <span class="built_in">console</span>.log(err));</span><br></pre></td></tr></table></figure>
 
-<p>看着貌似很准确的样子，但是还是有缺陷，当创建一个对象改变他的原型的时候，就不再准确了！</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Foo</span>(<span class="params"></span>) </span>&#123;&#125;</span><br><span class="line">Foo.prototype = <span class="keyword">new</span> <span class="built_in">Array</span>();</span><br><span class="line"><span class="keyword">let</span> foo = <span class="keyword">new</span> Foo();</span><br><span class="line"><span class="built_in">console</span>.log(foo.constructor === <span class="built_in">Array</span>); <span class="comment">//true</span></span><br></pre></td></tr></table></figure>
-
-<p>这是因为 js 每个函数都有一个 prototype 属性，指向原型对象，对象.prototype.constructor 指向的是该对象的构造函数，当把该对象的原型对象更改时，该函数的构造对象也会更改，所以就会出现如上的问题</p>
-<h3 id="3-4-Object-prototype-toString-call"><a href="#3-4-Object-prototype-toString-call" class="headerlink" title="3.4 Object.prototype.toString.call()"></a>3.4 Object.prototype.toString.call()</h3><p>具体使用：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="number">1</span>)); <span class="comment">//[object Number]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="string">"1"</span>)); <span class="comment">//[object String]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="literal">true</span>)); <span class="comment">//[object Boolean]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call([])); <span class="comment">//[object Array]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(&#123;&#125;)); <span class="comment">//[object Object]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="function"><span class="keyword">function</span> <span class="title">Foo</span>(<span class="params"></span>) </span>&#123;&#125;)); <span class="comment">//[object Function]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="literal">undefined</span>)); <span class="comment">//[object Undefined]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="literal">null</span>)); <span class="comment">//[object Null]</span></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.prototype.toString.call(<span class="built_in">Symbol</span>())); <span class="comment">//[object Symbol]</span></span><br></pre></td></tr></table></figure>
-
-<p>这是最准确的类型判定的方法，就算改变原型也不会有问题。<br>具体分析一下这个方法背后的故事：<br>每个 Object 原型上都有一个 toString 的方法，当调用这个方法的时候会执行三个步骤：<br>1、获取对象的类名（对象类型）<br>2、将[object、获取的对象类型]组合为字符串<br>3、返回字符串</p>
-<h4 id="为什么要用-call-方法？"><a href="#为什么要用-call-方法？" class="headerlink" title="为什么要用 call 方法？"></a>为什么要用 call 方法？</h4><p>因为 Array、String 等类型都对其继承下来原型上的 toSring 方法进行了重写，无法返回我们想要的结果，所以我们通过 call 方法，将 Object.prototype.toString 上的 Object 的指向改变，才能对类型进行精准的判断。</p>
-<h4 id="Object-toString-和-Object-prototype-toString-的区别？"><a href="#Object-toString-和-Object-prototype-toString-的区别？" class="headerlink" title="Object.toString 和 Object.prototype.toString 的区别？"></a>Object.toString 和 Object.prototype.toString 的区别？</h4><p>Object.toString 是 Object 构造器的方法，返回的是函数</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Object</span>.toString(&#123;&#125;); <span class="comment">//"function Object() &#123; [native code] &#125;"</span></span><br></pre></td></tr></table></figure>
-
-<p>Object.prototype.toString 是 Object 原型上的方法，返回的是类型字符串，才是我们想要的结果</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Object</span>.prototype.toString(&#123;&#125;); <span class="comment">//"[object Object]"</span></span><br></pre></td></tr></table></figure>
+<p>因为 catch 抓的是它之前的错误。<br>值得注意的是，如果有多个 await 时，这几个 await 并不是同时触发，而是继发，即上一条 await 后的 Promise 成功后再触发下一条 await，如果想同时触发的话，可选用 Promise.all 方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> [a, b] = <span class="keyword">await</span> <span class="built_in">Promise</span>.all([</span><br><span class="line">    <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> resolve(<span class="number">1</span>)),</span><br><span class="line">    <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve</span>) =&gt;</span> resolve(<span class="number">2</span>)),</span><br><span class="line">  ]);</span><br><span class="line">  <span class="keyword">return</span> [a, b];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
             
 
@@ -316,7 +304,7 @@
             <div class="post-footer-tags">
                 <span class="text-color-light text-small">标签</span><br/>
                 
-    <a class="tag tag--primary tag--small t-link" href="/tags/javascript/" rel="tag">javascript</a> <a class="tag tag--primary tag--small t-link" href="/tags/%E5%89%8D%E7%AB%AF/" rel="tag">前端</a>
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
 
             </div>
         
@@ -326,25 +314,25 @@
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    
-                <a
-                    class="post-action-btn btn btn--default tooltip--top"
-                    href="/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
-                    data-tooltip="类型转换"
-                    aria-label="上一篇: 类型转换"
-                >
-                    
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
                         <i class="fa fa-angle-left" aria-hidden="true"></i>
                         <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
                     </a>
             </li>
             <li class="post-action">
                 
-                    <a
-                        class="post-action-btn btn btn--disabled"
-                        aria-hidden="true"
-                    >
-                        
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/02/Generator/"
+                    data-tooltip="Generator"
+                    aria-label="下一篇: Generator"
+                >
+                    
                         <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
                         <i class="fa fa-angle-right" aria-hidden="true"></i>
                     </a>
@@ -367,7 +355,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                     title="分享到 Facebook"
                     aria-label="分享到 Facebook"
                 >
@@ -380,7 +368,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                     title="分享到 Twitter"
                     aria-label="分享到 Twitter"
                 >
@@ -393,7 +381,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                     title="分享到 Google+"
                     aria-label="分享到 Google+"
                 >
@@ -438,25 +426,25 @@
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
-                    
-                <a
-                    class="post-action-btn btn btn--default tooltip--top"
-                    href="/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
-                    data-tooltip="类型转换"
-                    aria-label="上一篇: 类型转换"
-                >
-                    
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
                         <i class="fa fa-angle-left" aria-hidden="true"></i>
                         <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
                     </a>
             </li>
             <li class="post-action">
                 
-                    <a
-                        class="post-action-btn btn btn--disabled"
-                        aria-hidden="true"
-                    >
-                        
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/02/Generator/"
+                    data-tooltip="Generator"
+                    aria-label="下一篇: Generator"
+                >
+                    
                         <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
                         <i class="fa fa-angle-right" aria-hidden="true"></i>
                     </a>
@@ -479,7 +467,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                     title="分享到 Facebook"
                     aria-label="分享到 Facebook"
                 >
@@ -492,7 +480,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                     title="分享到 Twitter"
                     aria-label="分享到 Twitter"
                 >
@@ -505,7 +493,7 @@
             <li class="post-action hide-xs">
                 <a
                     class="post-action-btn btn btn--default"
-                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                     title="分享到 Google+"
                     aria-label="分享到 Google+"
                 >
@@ -539,7 +527,7 @@
                     <a
                         class="share-option-btn"
                         target="new"
-                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                         aria-label="分享到 Facebook"
                     >
                         <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
@@ -552,7 +540,7 @@
                     <a
                         class="share-option-btn"
                         target="new"
-                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                         aria-label="分享到 Twitter"
                     >
                         <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
@@ -565,7 +553,7 @@
                     <a
                         class="share-option-btn"
                         target="new"
-                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/06/Async%E5%92%8CAwait/"
                         aria-label="分享到 Google+"
                     >
                         <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
