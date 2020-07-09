@@ -1,0 +1,1114 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>Set和Map - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"ES6 新增了两个数据结构，一个是 set，另外一个是 map。\n1、set在《你不知道的 JavaScript(下卷)》中是这么定义的：set 是一个值的集合，其中的值唯一（重复会被忽略）。它类似于数组，但是每个成员的值是唯一的。\n\n\nset 是一个构造函数，可以通过 new 来创建一个 set 实例。\n12let set = new Set([1, 2, 3, 1, 4]);console.log(set); // &#123;1, 2, 3, 4&#125;\n\n上述可以看出，new Set 会自动过滤掉重复值，并返回一个集合，我们可以利用这个特性，来写出简单的数组去重。\n123let set = new Set([1, 2, 3, 1, 4]);let arr = [...set];console.log(arr); // [1, 2, 3, 4]\n\nset 通过 add()来增加成员，将新值放在集合尾部，如果新值跟原集合中的成员重复的话，会被自动过滤掉。\n123456let set = new Set([1, 2, 3, 1, 4]);set.add(1);console.log(set); // &#123;1, 2, 3, 4&#125;let set = new Set([1, 2, 3, 1, 4]);set.add(0);console.log(set); // &#123;1, 2, 3, 4, 0&#125;\n\nSet 的构造函数可以接受一个具有 Iterable 接口的其他数据结构作为参数。\n123456789// 例1let set = new Set(\"string\");console.log(set); // &#123;\"s\", \"t\", \"r\", \"i\", \"n\", \"g\"&#125;// 例2function foo(a, b) &#123;  let set = new Set(arguments);  console.log(set); // &#123;1, 2&#125;&#125;foo(1, 2);\n\n2、set 的 APIset 的实例属性有两个：\n\nSet.prototype.constructor：构造函数，默认就是 Set 函数。\nSet.prototype.size： 返回 Set 对象中的值的个数。\n\n实例方法分为两类，一个是操作类，一个是遍历类。操作类：\n\nSet.prototype.add(value)：在 Set 对象尾部添加一个元素。返回该 Set 对象。\nSet.prototype.clear()：移除 Set 对象内的所有元素。\nSet.prototype.delete(value)：移除 Set 的中与这个值相等的元素，返回 Set.prototype.has(value)在这个操作前会返回的值（即如果该元素存在，返回 true，否则返回 false）。Set.prototype.has(value)在此后会返回 false。\nSet.prototype.has(value)：返回一个布尔值，表示该值在 Set 中存在与否。\n\n12345678910111213// 例1let set = new Set([1, 2, 3]);set.clear();console.log(set); // &#123;&#125;// 例2let set = new Set([1, 2, 3]);let result = set.delete(1);console.log(result); // trueconsole.log(set); // &#123;2, 3&#125;// 例3let set = new Set([1, 2, 3]);let result = set.has(1);console.log(result); // true\n\n遍历类：\n\nSet.prototype.values()：返回一个新的迭代器对象，该对象包含 Set 对象中的按插入顺序排列的所有元素的值。\nSet.prototype.keys()：与 values()方法相同，返回一个新的迭代器对象，该对象包含 Set 对象中的按插入顺序排列的所有元素的值。\nSet.prototype.forEach(callbackFn[, thisArg])：按照插入顺序，为 Set 对象中的每一个值调用一次 callBackFn。如果提供了 thisArg 参数，回调中的 this 会是这个参数。\nSet.prototype.entries()：返回一个新的迭代器对象，该对象包含 Set 对象中的按插入顺序排列的所有元素的值的[value, value]数组。为了使这个方法和 Map 对象保持相似，每个值的键和值相等。\n\n12345678// 例1let set = new Set([1, 2, 3]);let keys = set.keys();console.log(keys); // &#123;1, 2, 3&#125;// 例2let set = new Set([1, 2, 3]);let values = set.values();console.log(values); // &#123;1, 2, 3&#125;\n\n上述两个例子，因为 Sset 没有键名，只有值，所以 keys 和 values 的结果是一样的。Set 同样拥有 forEach 方法：\n1234567let set = new Set([1, 2, 3]);set.forEach((key, value) =&gt; &#123;  console.log(`$&#123;key&#125;:$&#123;value&#125;`);&#125;);// 1:1// 2:2// 3:3\n\n跟数组的 forEach 方法不同的是，它的回调函数的参数是其 key 值和 value 值，但是 Set 没有 key 值，所以其 key 和 value 相等。forEach 的第二个参数是 this 值，其绑定的是回调函数中的 this 值。最后一个实例方法是 entries：\n12345678let set = new Set([1, 2, 3]);let entries = set.entries();console.log(entries);// &#123;//   [1, 1],//   [2, 2],//   [3, 3]// &#125;\n\nenteries()返回一个遍历器，返回一个键值对，但其键值对均相等。\n3、WeakSetWeakSet 也是一个构造函数，与 Set 一直，WeakSet 和 Set 两者相似但不同，不同点主要有两个：\n\nWeakSet 的成员值必须是对象（可迭代的对象），而并不像 set 一样可以是原生类型值。\nWeakSet 持弱引用：集合中对象的引用为弱引用。如果没有其他的对 WeakSet 中对象的引用，那么这些对象会被当成垃圾回收掉。这也意味着 WeakSet 中没有存储当前对象的列表。正因为这样，WeakSet 是不可枚举的。\n\n12345let weakSet = new WeakSet([1, 2]); // Uncaught TypeError: Invalid value used in weak setlet weakSet = new WeakSet([  [1, 2],  [3, 4],]); // &#123;[1, 2], [3, 4]&#125;\n\nWeakSet 有三个实例方法：\n\nWeakSet.prototype.add(value)：返回构造函数即 WeakSet 本身。\nWeakSet.prototype.delete(value)：从该 WeakSet 对象中删除 value 这个元素, 之后 WeakSet.prototype.has(value) 方法便会返回 false。\nWeakSet.prototype.has(value)：返回一个布尔值, 表示给定的值 value 是否存在于这个 WeakSet 中。\n\n12345678910111213var ws = new WeakSet();var foo = &#123;&#125;;var bar = &#123;&#125;;ws.add(foo);ws.add(bar);ws.has(foo); // truews.has(bar); // truews.delete(foo); // 从set中删除 foo 对象ws.has(foo); // false, foo 对象已经被删除了ws.has(bar); // true, bar 依然存在\n\n4、Map在 JS 中对象是创建无序键 / 值对数据结构 [ 也称为 映射（map）] 的主要机制。但是，对象作为映射的主要缺点是不能使用非字符串值作为键。所以在 ES6 提出一个新的数据结构，Map。Map 和对象很类似，都是键值对的形式，但是 Map 的键可以是任意类型(对象或者原始值)，NaN 也可以作为键，不再只局限于字符串。任何具有 Iterator 接口、且每个成员都是一个双元素的数组的数据结构都可以当作 Map 构造函数的参数。\n12let map = new Map([[&#123; a: 1 &#125;, 3]]);console.log(map); // &#123;&#123;a:1&#125;: 3&#125;\n\n在 MDN 中清晰的列出了 Map 和 Object 间的不同：\n\n\n\n\nMap\nObject\n\n\n\n意外的键\nMap 默认情况不包含任何键。只包含显式插入的键。\n一个 Object 有一个原型, 原型链上的键名有可能和你自己在对象上的设置的键名产生冲突。注意: 虽然 ES5 开始可以用 Object.create(null) 来创建一个没有原型的对象，但是这种用法不太常见。\n\n\n键的类型\n一个 Map 的键可以是任意值，包括函数、对象或任意基本类型。\n一个 Object 的键必须是一个 String 或是 Symbol。\n\n\n键的顺序\nMap 中的 key 是有序的。因此，当迭代的时候，一个 Map 对象以插入的顺序返回键值。\n一个 Object 的键是无序的。注意：自 ECMAScript 2015 规范以来，对象确实保留了字符串和 Symbol 键的创建顺序； 因此，在只有字符串键的对象上进行迭代将按插入顺序产生键。\n\n\nSize\nMap 的键值对个数可以轻易地通过 size 属性获取\nObject 的键值对个数只能手动计算\n\n\n迭代\nMap 是 iterable 的，所以可以直接被迭代。\n迭代一个 Object 需要以某种方式获取它的键然后才能迭代。\n\n\n性能\n在频繁增删键值对的场景下表现更好。\n在频繁添加和删除键值对的场景下未作出优化。\n\n\n5、Map 的 APIMap 的实例属性有两个：\n\nMap.prototype.constructor：返回一个函数，它创建了实例的原型。默认是 Map 函数。\nMap.prototype.size： 返回 Map 对象的键/值对的数量。\n\n实例方法分为两类，一个是操作类，一个是遍历类。操作类：\n\nMap.prototype.set(key, value)：设置 Map 对象中键的值。返回该 Map 对象。\nMap.prototype.get(key)：返回键对应的值，如果不存在，则返回 undefined。\nMap.prototype.has(key)：返回一个布尔值，表示 Map 实例是否包含键对应的值。\nMap.prototype.delete(key)：如果 Map 对象中存在该元素，则移除它并返回 true；否则如果该元素不存在则返回 false。随后调用 Map.prototype.has(key) 将返回 false 。\nMap.prototype.clear()：移除 Map 对象的所有键/值对。\n\n123456789let map = new Map();let key = &#123; name: \"Jack\" &#125;;let value = \"啥\";map.set(key, value); // &#123;&#123;name: 'Jack'&#125;: '啥'&#125;map.get(key); // '啥'map.get(a); // undefinedmap.has(key); // truemap.delete(key); // truemap.clear(); // &#123;&#125;\n\n遍历类：\n\nMap.prototype.entries()：返回一个新的 Iterator 对象，它按插入顺序包含了 Map 对象中每个元素的 [key, value] 数组。\nMap.prototype.forEach(callbackFn[, thisArg])：按插入顺序，为 Map 对象里的每一键值对调用一次 callbackFn 函数。如果为 forEach 提供了 thisArg，它将在每次回调中作为 this 值。\nMap.prototype.keys()：返回一个新的 Iterator 对象， 它按插入顺序包含了 Map 对象中每个元素的键 。\nMap.prototype.values()：返回一个新的 Iterator 对象，它按插入顺序包含了 Map 对象中每个元素的值 。\n\n1234567891011121314151617181920let map = new Map([  [\"name\", \"Jack\"],  [&#123; age: 25 &#125;, \"啥\"],]);map.entries(); // MapIterator &#123;\"name\" =&gt; \"Jack\", &#123;age: 25&#125; =&gt; \"啥\"&#125;for (let item of map.entries()) &#123;  console.log(item); // [\"name\", \"Jack\"] [&#123;age: 25&#125;, \"啥\"]&#125;map.forEach((value, key, map) =&gt; &#123;  console.log(value, key, map); // Jack name Map(2) &#123;\"name\" =&gt; \"Jack\", &#123;age: 25&#125; =&gt; \"啥\"&#125;  //\"啥\"&#123;age: 25&#125; Map(2) &#123;\"name\" =&gt; \"Jack\", &#123;age: 25&#125; =&gt; \"啥\"&#125;&#125;);map.keys(); // MapIterator &#123;\"name\", &#123;age: 25&#125;&#125;for (let item of map.keys()) &#123;  console.log(item); // \"name\" &#123;age: 25&#125;&#125;map.values(); // MapIterator &#123;\"Jack\", \"啥\"&#125;for (let item of map.values()) &#123;  console.log(item); // \"Jack\" \"啥\"&#125;\n\n6、Map 和其他数据结构的转换6.1、Map 转数组ES6 给出一个最简单的方式，扩展运算符。\n12345let map = new Map([  [\"name\", \"Jack\"],  [&#123; age: 25 &#125;, \"啥\"],]);console.log([...map]); // [['name', 'Jack'], [&#123;age: 25&#125;, '啥']]\n\n除此之外还可以用 Array.from()。\n12345let map = new Map([  [\"name\", \"Jack\"],  [&#123; age: 25 &#125;, \"啥\"],]);console.log(Array.from(map)); // [['name', 'Jack'], [&#123;age: 25&#125;, '啥']]\n\n6.2、Map 转对象如果所有 Map 的键都是字符串，它可以无损地转为对象。\n1234567891011function strMapToObj(strMap) &#123;  let obj = Object.create(null);  for (let [k, v] of strMap) &#123;    obj[k] = v;  &#125;  return obj;&#125;const myMap = new Map().set(\"yes\", true).set(\"no\", false);strMapToObj(myMap);// &#123; yes: true, no: false &#125;\n\n6.3 Map 转 JSONMap 转 JSON 有两个形式，第一种是键名都是字符串的类型的，第二种是键名中包含非字符串类型。第一种的话直接将 map 转为对象，然后再用 JSON.Stringfy()进行转换。第二种的话可以转成数组 JSON。\n1234567function mapToArrayJson(map) &#123;  return JSON.stringify([...map]);&#125;let myMap = new Map().set(true, 7).set(&#123; foo: 3 &#125;, [\"abc\"]);mapToArrayJson(myMap);// '[[true,7],[&#123;\"foo\":3&#125;,[\"abc\"]]]'\n\n7、WeakMapWeakMap 和 WeakSet 有些类似，都是弱引用，并且成员值的键必须是对象。\n12let weakMap = new WeakMap([[1, 3]]); // Uncaught TypeError: Invalid value used as weak map keylet weakMap = new WeakMap([[&#123; name: \"Jack\" &#125;, 3]]); // &#123;&#123;name: 'Jack'&#125;: 3&#125;\n\nWeakMap 有四个实例方法：\n\nWeakMap.prototype.delete(key)：移除 key 的关联对象。执行后 WeakMap.prototype.has(key)返回 false。\nWeakMap.prototype.get(key)：返回 key 关联对象, 或者 undefined(没有 key 关联对象时)。\nWeakMap.prototype.has(key)：根据是否有 key 关联对象返回一个 Boolean 值。\nWeakMap.prototype.set(key, value)：在 WeakMap 中设置一组 key 关联对象，返回这个 WeakMap 对象。\n\n123456let weakMap = new WeakMap();let obj = &#123; name: \"Jack\" &#125;;weakMap.set(obj, 3); // &#123;&#123;name: 'Jack': 3&#125;&#125;weakMap.get(obj); // 3weakMap.has(obj); // trueweakMap.delete(obj); // true\n\n参考：\nSet 和 Map 数据结构\n","dateCreated":"2020-07-09T22:09:11+08:00","dateModified":"2020-07-09T22:11:41+08:00","datePublished":"2020-07-09T22:09:11+08:00","description":"ES6 新增了两个数据结构，一个是 set，另外一个是 map。\n1、set在《你不知道的 JavaScript(下卷)》中是这么定义的：set 是一个值的集合，其中的值唯一（重复会被忽略）。它类似于数组，但是每个成员的值是唯一的。","headline":"Set和Map","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="ES6 新增了两个数据结构，一个是 set，另外一个是 map。 1、set在《你不知道的 JavaScript(下卷)》中是这么定义的：set 是一个值的集合，其中的值唯一（重复会被忽略）。它类似于数组，但是每个成员的值是唯一的。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Set和Map">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/index.html">
+<meta property="og:site_name" content="Tomato&#39;s blog">
+<meta property="og:description" content="ES6 新增了两个数据结构，一个是 set，另外一个是 map。 1、set在《你不知道的 JavaScript(下卷)》中是这么定义的：set 是一个值的集合，其中的值唯一（重复会被忽略）。它类似于数组，但是每个成员的值是唯一的。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-07-09T14:09:11.000Z">
+<meta property="article:modified_time" content="2020-07-09T14:11:41.461Z">
+<meta property="article:author" content="TomatoMan">
+<meta property="article:tag" content="ES6">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Set和Map
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-07-09T22:09:11+08:00">
+	
+		    7月 09, 2020
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/ES6/">ES6</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>ES6 新增了两个数据结构，一个是 set，另外一个是 map。</p>
+<h2 id="1、set"><a href="#1、set" class="headerlink" title="1、set"></a>1、set</h2><p>在《你不知道的 JavaScript(下卷)》中是这么定义的：set 是一个值的集合，其中的值唯一（重复会被忽略）。<br>它类似于数组，但是每个成员的值是唯一的。</p>
+<a id="more"></a>
+
+<p>set 是一个构造函数，可以通过 new 来创建一个 set 实例。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3, 1, 4]);</span><br><span class="line">console.log(<span class="keyword">set</span>); // &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述可以看出，new Set 会自动过滤掉重复值，并返回一个集合，我们可以利用这个特性，来写出简单的数组去重。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3, 1, 4]);</span><br><span class="line">let arr = [...<span class="keyword">set</span>];</span><br><span class="line">console.log(arr); // [1, 2, 3, 4]</span><br></pre></td></tr></table></figure>
+
+<p>set 通过 add()来增加成员，将新值放在集合尾部，如果新值跟原集合中的成员重复的话，会被自动过滤掉。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3, 1, 4]);</span><br><span class="line"><span class="keyword">set</span>.add(1);</span><br><span class="line">console.log(<span class="keyword">set</span>); // &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>&#125;</span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3, 1, 4]);</span><br><span class="line"><span class="keyword">set</span>.add(0);</span><br><span class="line">console.log(<span class="keyword">set</span>); // &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">0</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Set 的构造函数可以接受一个具有 Iterable 接口的其他数据结构作为参数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 例1</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set("string");</span><br><span class="line">console.log(<span class="keyword">set</span>); // &#123;<span class="string">"s"</span>, <span class="string">"t"</span>, <span class="string">"r"</span>, <span class="string">"i"</span>, <span class="string">"n"</span>, <span class="string">"g"</span>&#125;</span><br><span class="line"><span class="comment">// 例2</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">set</span> = new Set(arguments);</span><br><span class="line">  console.log(<span class="keyword">set</span>); // &#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">&#125;</span><br><span class="line">foo(<span class="number">1</span>, <span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<h2 id="2、set-的-API"><a href="#2、set-的-API" class="headerlink" title="2、set 的 API"></a>2、set 的 API</h2><p>set 的实例属性有两个：</p>
+<ol>
+<li>Set.prototype.constructor：构造函数，默认就是 Set 函数。</li>
+<li>Set.prototype.size： 返回 Set 对象中的值的个数。</li>
+</ol>
+<p>实例方法分为两类，一个是操作类，一个是遍历类。<br>操作类：</p>
+<ol>
+<li>Set.prototype.add(value)：在 Set 对象尾部添加一个元素。返回该 Set 对象。</li>
+<li>Set.prototype.clear()：移除 Set 对象内的所有元素。</li>
+<li>Set.prototype.delete(value)：移除 Set 的中与这个值相等的元素，返回 Set.prototype.has(value)在这个操作前会返回的值（即如果该元素存在，返回 true，否则返回 false）。Set.prototype.has(value)在此后会返回 false。</li>
+<li>Set.prototype.has(value)：返回一个布尔值，表示该值在 Set 中存在与否。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 例1</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line"><span class="keyword">set</span>.clear();</span><br><span class="line">console.log(<span class="keyword">set</span>); // &#123;&#125;</span><br><span class="line"><span class="comment">// 例2</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line">let result = <span class="keyword">set</span>.delete(1);</span><br><span class="line">console.log(result); // true</span><br><span class="line">console.log(<span class="keyword">set</span>); // &#123;<span class="number">2</span>, <span class="number">3</span>&#125;</span><br><span class="line"><span class="comment">// 例3</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line">let result = <span class="keyword">set</span>.has(1);</span><br><span class="line">console.log(result); // true</span><br></pre></td></tr></table></figure>
+
+<p>遍历类：</p>
+<ol>
+<li>Set.prototype.values()：返回一个新的迭代器对象，该对象包含 Set 对象中的按插入顺序排列的所有元素的值。</li>
+<li>Set.prototype.keys()：与 values()方法相同，返回一个新的迭代器对象，该对象包含 Set 对象中的按插入顺序排列的所有元素的值。</li>
+<li>Set.prototype.forEach(callbackFn[, thisArg])：按照插入顺序，为 Set 对象中的每一个值调用一次 callBackFn。如果提供了 thisArg 参数，回调中的 this 会是这个参数。</li>
+<li>Set.prototype.entries()：返回一个新的迭代器对象，该对象包含 Set 对象中的按插入顺序排列的所有元素的值的[value, value]数组。为了使这个方法和 Map 对象保持相似，每个值的键和值相等。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 例1</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line">let keys = <span class="keyword">set</span>.keys();</span><br><span class="line">console.log(keys); // &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;</span><br><span class="line"><span class="comment">// 例2</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line">let values = <span class="keyword">set</span>.values();</span><br><span class="line">console.log(values); // &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述两个例子，因为 Sset 没有键名，只有值，所以 keys 和 values 的结果是一样的。<br>Set 同样拥有 forEach 方法：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line"><span class="keyword">set</span>.forEach((key, value) =&gt; &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">`<span class="subst">$&#123;key&#125;</span>:<span class="subst">$&#123;value&#125;</span>`</span>);</span><br><span class="line">&#125;);</span><br><span class="line"><span class="comment">// 1:1</span></span><br><span class="line"><span class="comment">// 2:2</span></span><br><span class="line"><span class="comment">// 3:3</span></span><br></pre></td></tr></table></figure>
+
+<p>跟数组的 forEach 方法不同的是，它的回调函数的参数是其 key 值和 value 值，但是 Set 没有 key 值，所以其 key 和 value 相等。forEach 的第二个参数是 this 值，其绑定的是回调函数中的 this 值。<br>最后一个实例方法是 entries：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">set</span> = new Set([1, 2, 3]);</span><br><span class="line">let entries = <span class="keyword">set</span>.entries();</span><br><span class="line">console.log(entries);</span><br><span class="line">// &#123;</span><br><span class="line"><span class="comment">//   [1, 1],</span></span><br><span class="line"><span class="comment">//   [2, 2],</span></span><br><span class="line"><span class="comment">//   [3, 3]</span></span><br><span class="line"><span class="comment">// &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>enteries()返回一个遍历器，返回一个键值对，但其键值对均相等。</p>
+<h2 id="3、WeakSet"><a href="#3、WeakSet" class="headerlink" title="3、WeakSet"></a>3、WeakSet</h2><p>WeakSet 也是一个构造函数，与 Set 一直，WeakSet 和 Set 两者相似但不同，不同点主要有两个：</p>
+<ol>
+<li>WeakSet 的成员值必须是对象（可迭代的对象），而并不像 set 一样可以是原生类型值。</li>
+<li>WeakSet 持弱引用：集合中对象的引用为弱引用。如果没有其他的对 WeakSet 中对象的引用，那么这些对象会被当成垃圾回收掉。这也意味着 WeakSet 中没有存储当前对象的列表。正因为这样，WeakSet 是不可枚举的。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> weakSet = <span class="keyword">new</span> <span class="built_in">WeakSet</span>([<span class="number">1</span>, <span class="number">2</span>]); <span class="comment">// Uncaught TypeError: Invalid value used in weak set</span></span><br><span class="line"><span class="keyword">let</span> weakSet = <span class="keyword">new</span> <span class="built_in">WeakSet</span>([</span><br><span class="line">  [<span class="number">1</span>, <span class="number">2</span>],</span><br><span class="line">  [<span class="number">3</span>, <span class="number">4</span>],</span><br><span class="line">]); <span class="comment">// &#123;[1, 2], [3, 4]&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>WeakSet 有三个实例方法：</p>
+<ol>
+<li>WeakSet.prototype.add(value)：返回构造函数即 WeakSet 本身。</li>
+<li>WeakSet.prototype.delete(value)：从该 WeakSet 对象中删除 value 这个元素, 之后 WeakSet.prototype.has(value) 方法便会返回 false。</li>
+<li>WeakSet.prototype.has(value)：返回一个布尔值, 表示给定的值 value 是否存在于这个 WeakSet 中。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> ws = <span class="keyword">new</span> <span class="built_in">WeakSet</span>();</span><br><span class="line"><span class="keyword">var</span> foo = &#123;&#125;;</span><br><span class="line"><span class="keyword">var</span> bar = &#123;&#125;;</span><br><span class="line"></span><br><span class="line">ws.add(foo);</span><br><span class="line">ws.add(bar);</span><br><span class="line"></span><br><span class="line">ws.has(foo); <span class="comment">// true</span></span><br><span class="line">ws.has(bar); <span class="comment">// true</span></span><br><span class="line"></span><br><span class="line">ws.delete(foo); <span class="comment">// 从set中删除 foo 对象</span></span><br><span class="line">ws.has(foo); <span class="comment">// false, foo 对象已经被删除了</span></span><br><span class="line">ws.has(bar); <span class="comment">// true, bar 依然存在</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="4、Map"><a href="#4、Map" class="headerlink" title="4、Map"></a>4、Map</h2><p>在 JS 中对象是创建无序键 / 值对数据结构 [ 也称为 映射（map）] 的主要机制。但是，对象作为映射的主要缺点是不能使用非字符串值作为键。所以在 ES6 提出一个新的数据结构，Map。<br>Map 和对象很类似，都是键值对的形式，但是 Map 的键可以是任意类型(对象或者原始值)，NaN 也可以作为键，不再只局限于字符串。<br>任何具有 Iterator 接口、且每个成员都是一个双元素的数组的数据结构都可以当作 Map 构造函数的参数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="built_in">Map</span>([[&#123; <span class="attr">a</span>: <span class="number">1</span> &#125;, <span class="number">3</span>]]);</span><br><span class="line"><span class="built_in">console</span>.log(map); <span class="comment">// &#123;&#123;a:1&#125;: 3&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>在 MDN 中清晰的列出了 Map 和 Object 间的不同：</p>
+<table>
+<thead>
+<tr>
+<th align="left"></th>
+<th align="center">Map</th>
+<th align="center">Object</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">意外的键</td>
+<td align="center">Map 默认情况不包含任何键。只包含显式插入的键。</td>
+<td align="center">一个 Object 有一个原型, 原型链上的键名有可能和你自己在对象上的设置的键名产生冲突。注意: 虽然 ES5 开始可以用 Object.create(null) 来创建一个没有原型的对象，但是这种用法不太常见。</td>
+</tr>
+<tr>
+<td align="left">键的类型</td>
+<td align="center">一个 Map 的键可以是任意值，包括函数、对象或任意基本类型。</td>
+<td align="center">一个 Object 的键必须是一个 String 或是 Symbol。</td>
+</tr>
+<tr>
+<td align="left">键的顺序</td>
+<td align="center">Map 中的 key 是有序的。因此，当迭代的时候，一个 Map 对象以插入的顺序返回键值。</td>
+<td align="center">一个 Object 的键是无序的。注意：自 ECMAScript 2015 规范以来，对象确实保留了字符串和 Symbol 键的创建顺序； 因此，在只有字符串键的对象上进行迭代将按插入顺序产生键。</td>
+</tr>
+<tr>
+<td align="left">Size</td>
+<td align="center">Map 的键值对个数可以轻易地通过 size 属性获取</td>
+<td align="center">Object 的键值对个数只能手动计算</td>
+</tr>
+<tr>
+<td align="left">迭代</td>
+<td align="center">Map 是 iterable 的，所以可以直接被迭代。</td>
+<td align="center">迭代一个 Object 需要以某种方式获取它的键然后才能迭代。</td>
+</tr>
+<tr>
+<td align="left">性能</td>
+<td align="center">在频繁增删键值对的场景下表现更好。</td>
+<td align="center">在频繁添加和删除键值对的场景下未作出优化。</td>
+</tr>
+</tbody></table>
+<h2 id="5、Map-的-API"><a href="#5、Map-的-API" class="headerlink" title="5、Map 的 API"></a>5、Map 的 API</h2><p>Map 的实例属性有两个：</p>
+<ol>
+<li>Map.prototype.constructor：返回一个函数，它创建了实例的原型。默认是 Map 函数。</li>
+<li>Map.prototype.size： 返回 Map 对象的键/值对的数量。</li>
+</ol>
+<p>实例方法分为两类，一个是操作类，一个是遍历类。<br>操作类：</p>
+<ol>
+<li>Map.prototype.set(key, value)：设置 Map 对象中键的值。返回该 Map 对象。</li>
+<li>Map.prototype.get(key)：返回键对应的值，如果不存在，则返回 undefined。</li>
+<li>Map.prototype.has(key)：返回一个布尔值，表示 Map 实例是否包含键对应的值。</li>
+<li>Map.prototype.delete(key)：如果 Map 对象中存在该元素，则移除它并返回 true；否则如果该元素不存在则返回 false。随后调用 Map.prototype.has(key) 将返回 false 。</li>
+<li>Map.prototype.clear()：移除 Map 对象的所有键/值对。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="built_in">Map</span>();</span><br><span class="line"><span class="keyword">let</span> key = &#123; <span class="attr">name</span>: <span class="string">"Jack"</span> &#125;;</span><br><span class="line"><span class="keyword">let</span> value = <span class="string">"啥"</span>;</span><br><span class="line">map.set(key, value); <span class="comment">// &#123;&#123;name: 'Jack'&#125;: '啥'&#125;</span></span><br><span class="line">map.get(key); <span class="comment">// '啥'</span></span><br><span class="line">map.get(a); <span class="comment">// undefined</span></span><br><span class="line">map.has(key); <span class="comment">// true</span></span><br><span class="line">map.delete(key); <span class="comment">// true</span></span><br><span class="line">map.clear(); <span class="comment">// &#123;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>遍历类：</p>
+<ol>
+<li>Map.prototype.entries()：返回一个新的 Iterator 对象，它按插入顺序包含了 Map 对象中每个元素的 [key, value] 数组。</li>
+<li>Map.prototype.forEach(callbackFn[, thisArg])：按插入顺序，为 Map 对象里的每一键值对调用一次 callbackFn 函数。如果为 forEach 提供了 thisArg，它将在每次回调中作为 this 值。</li>
+<li>Map.prototype.keys()：返回一个新的 Iterator 对象， 它按插入顺序包含了 Map 对象中每个元素的键 。</li>
+<li>Map.prototype.values()：返回一个新的 Iterator 对象，它按插入顺序包含了 Map 对象中每个元素的值 。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="built_in">Map</span>([</span><br><span class="line">  [<span class="string">"name"</span>, <span class="string">"Jack"</span>],</span><br><span class="line">  [&#123; <span class="attr">age</span>: <span class="number">25</span> &#125;, <span class="string">"啥"</span>],</span><br><span class="line">]);</span><br><span class="line">map.entries(); <span class="comment">// MapIterator &#123;"name" =&gt; "Jack", &#123;age: 25&#125; =&gt; "啥"&#125;</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> item <span class="keyword">of</span> map.entries()) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(item); <span class="comment">// ["name", "Jack"] [&#123;age: 25&#125;, "啥"]</span></span><br><span class="line">&#125;</span><br><span class="line">map.forEach(<span class="function">(<span class="params">value, key, map</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(value, key, map); <span class="comment">// Jack name Map(2) &#123;"name" =&gt; "Jack", &#123;age: 25&#125; =&gt; "啥"&#125;</span></span><br><span class="line">  <span class="comment">//"啥"&#123;age: 25&#125; Map(2) &#123;"name" =&gt; "Jack", &#123;age: 25&#125; =&gt; "啥"&#125;</span></span><br><span class="line">&#125;);</span><br><span class="line">map.keys(); <span class="comment">// MapIterator &#123;"name", &#123;age: 25&#125;&#125;</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> item <span class="keyword">of</span> map.keys()) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(item); <span class="comment">// "name" &#123;age: 25&#125;</span></span><br><span class="line">&#125;</span><br><span class="line">map.values(); <span class="comment">// MapIterator &#123;"Jack", "啥"&#125;</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> item <span class="keyword">of</span> map.values()) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(item); <span class="comment">// "Jack" "啥"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="6、Map-和其他数据结构的转换"><a href="#6、Map-和其他数据结构的转换" class="headerlink" title="6、Map 和其他数据结构的转换"></a>6、Map 和其他数据结构的转换</h2><h4 id="6-1、Map-转数组"><a href="#6-1、Map-转数组" class="headerlink" title="6.1、Map 转数组"></a>6.1、Map 转数组</h4><p>ES6 给出一个最简单的方式，扩展运算符。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="built_in">Map</span>([</span><br><span class="line">  [<span class="string">"name"</span>, <span class="string">"Jack"</span>],</span><br><span class="line">  [&#123; <span class="attr">age</span>: <span class="number">25</span> &#125;, <span class="string">"啥"</span>],</span><br><span class="line">]);</span><br><span class="line"><span class="built_in">console</span>.log([...map]); <span class="comment">// [['name', 'Jack'], [&#123;age: 25&#125;, '啥']]</span></span><br></pre></td></tr></table></figure>
+
+<p>除此之外还可以用 Array.from()。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> map = <span class="keyword">new</span> <span class="built_in">Map</span>([</span><br><span class="line">  [<span class="string">"name"</span>, <span class="string">"Jack"</span>],</span><br><span class="line">  [&#123; <span class="attr">age</span>: <span class="number">25</span> &#125;, <span class="string">"啥"</span>],</span><br><span class="line">]);</span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Array</span>.from(map)); <span class="comment">// [['name', 'Jack'], [&#123;age: 25&#125;, '啥']]</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="6-2、Map-转对象"><a href="#6-2、Map-转对象" class="headerlink" title="6.2、Map 转对象"></a>6.2、Map 转对象</h4><p>如果所有 Map 的键都是字符串，它可以无损地转为对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">strMapToObj</span>(<span class="params">strMap</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> obj = <span class="built_in">Object</span>.create(<span class="literal">null</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">let</span> [k, v] <span class="keyword">of</span> strMap) &#123;</span><br><span class="line">    obj[k] = v;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> obj;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> myMap = <span class="keyword">new</span> <span class="built_in">Map</span>().set(<span class="string">"yes"</span>, <span class="literal">true</span>).set(<span class="string">"no"</span>, <span class="literal">false</span>);</span><br><span class="line">strMapToObj(myMap);</span><br><span class="line"><span class="comment">// &#123; yes: true, no: false &#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="6-3-Map-转-JSON"><a href="#6-3-Map-转-JSON" class="headerlink" title="6.3 Map 转 JSON"></a>6.3 Map 转 JSON</h4><p>Map 转 JSON 有两个形式，第一种是键名都是字符串的类型的，第二种是键名中包含非字符串类型。<br>第一种的话直接将 map 转为对象，然后再用 JSON.Stringfy()进行转换。<br>第二种的话可以转成数组 JSON。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mapToArrayJson</span>(<span class="params">map</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="built_in">JSON</span>.stringify([...map]);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> myMap = <span class="keyword">new</span> <span class="built_in">Map</span>().set(<span class="literal">true</span>, <span class="number">7</span>).set(&#123; <span class="attr">foo</span>: <span class="number">3</span> &#125;, [<span class="string">"abc"</span>]);</span><br><span class="line">mapToArrayJson(myMap);</span><br><span class="line"><span class="comment">// '[[true,7],[&#123;"foo":3&#125;,["abc"]]]'</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="7、WeakMap"><a href="#7、WeakMap" class="headerlink" title="7、WeakMap"></a>7、WeakMap</h2><p>WeakMap 和 WeakSet 有些类似，都是弱引用，并且成员值的键必须是对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> weakMap = <span class="keyword">new</span> <span class="built_in">WeakMap</span>([[<span class="number">1</span>, <span class="number">3</span>]]); <span class="comment">// Uncaught TypeError: Invalid value used as weak map key</span></span><br><span class="line"><span class="keyword">let</span> weakMap = <span class="keyword">new</span> <span class="built_in">WeakMap</span>([[&#123; <span class="attr">name</span>: <span class="string">"Jack"</span> &#125;, <span class="number">3</span>]]); <span class="comment">// &#123;&#123;name: 'Jack'&#125;: 3&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>WeakMap 有四个实例方法：</p>
+<ol>
+<li>WeakMap.prototype.delete(key)：移除 key 的关联对象。执行后 WeakMap.prototype.has(key)返回 false。</li>
+<li>WeakMap.prototype.get(key)：返回 key 关联对象, 或者 undefined(没有 key 关联对象时)。</li>
+<li>WeakMap.prototype.has(key)：根据是否有 key 关联对象返回一个 Boolean 值。</li>
+<li>WeakMap.prototype.set(key, value)：在 WeakMap 中设置一组 key 关联对象，返回这个 WeakMap 对象。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> weakMap = <span class="keyword">new</span> <span class="built_in">WeakMap</span>();</span><br><span class="line"><span class="keyword">let</span> obj = &#123; <span class="attr">name</span>: <span class="string">"Jack"</span> &#125;;</span><br><span class="line">weakMap.set(obj, <span class="number">3</span>); <span class="comment">// &#123;&#123;name: 'Jack': 3&#125;&#125;</span></span><br><span class="line">weakMap.get(obj); <span class="comment">// 3</span></span><br><span class="line">weakMap.has(obj); <span class="comment">// true</span></span><br><span class="line">weakMap.delete(obj); <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a href="https://es6.ruanyifeng.com/#docs/set-map" target="_blank" rel="noopener">Set 和 Map 数据结构</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/06/Async%E5%92%8CAwait/"
+                    data-tooltip="Async和Await"
+                    aria-label="下一篇: Async和Await"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Share this post"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Back to top">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/06/Async%E5%92%8CAwait/"
+                    data-tooltip="Async和Await"
+                    aria-label="下一篇: Async和Await"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Share this post"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Back to top">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/09/Set%E5%92%8CMap/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+            <div id="algolia-search-modal" class="modal-container">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="close-button"><i class="fa fa-times"></i></span>
+            <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+                <span class="searchby-algolia-text text-color-light text-small">by</span>
+                <img class="searchby-algolia-logo" src="/assets/images/logo-algolia-nebula-blue-full.svg">
+            </a>
+            <i class="search-icon fa fa-search"></i>
+            <form id="algolia-search-form">
+                <input type="text" id="algolia-search-input" name="search"
+                    class="form-control input--large search-input" placeholder="Search "
+                    />
+            </form>
+        </div>
+        <div class="modal-body">
+            <div class="no-result text-color-light text-center">没有找到文章</div>
+            <div class="results">
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <h3 class="media-heading">js基础类型和引用类型</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月8日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <h3 class="media-heading">类型转换</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <h3 class="media-heading">深拷贝和浅拷贝</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>这属于面试的高频问题了，深浅拷贝的问题只针对于引用数据类型，对于基本数据类型并没有这样的问题。<br>为什么引用数据类型会出现这样的问题？<br>第一篇 js 数据类型中有提到，引用数据类型存放在堆中，栈中存放的是该引用类型的地址，以便能通过地址快速找到该引用数据。<br>所以在拷贝时就会出现只拷贝引用类型的地址和再在堆中开辟一个新的内存空间的两种拷贝方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <h3 class="media-heading">原型与原型链</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <h3 class="media-heading">继承</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <h3 class="media-heading">new关键词</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月21日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>大部分面试的时候，面试官先已原型链铺路，随后就会问你 new 关键词都做了些什么？也是为了下一个继承问题再次铺路！<br>那这篇文章我们就来讲讲这个 new！<br>我们通常在什么地方能看到它，在创建实例的时候，new 后面加上一个构造函数，就是创建这个构造函数的实例。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <h3 class="media-heading">作用域</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>何为作用域，查找度娘百科中是这么定义的：</p>
+<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <h3 class="media-heading">执行上下文</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <h3 class="media-heading">闭包</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月12日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <h3 class="media-heading">call、apply和bind</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月18日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>call、apply 和 bind 都是对 this 值得改变，那三者有什么不同呢？本篇通过模拟三者代码的形式来讲解。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="results-count text-medium"
+                data-message-zero="没有找到文章"
+                data-message-one="找到 1 篇文章"
+                data-message-other="找到 {n} 篇文章">
+                找到 15 篇文章
+            </p>
+        </div>
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+    
+<script src="/assets/js/moment-with-locales.js"></script>
+
+    
+<script src="/assets/js/algoliasearch.js"></script>
+
+    <script>
+      var algoliaClient = algoliasearch('2ILBT3HBZ2', '2f34a1f86e95da45573cd221c686a072');
+      var algoliaIndex = algoliaClient.initIndex('my-hexo-blog');
+    </script>
+
+
+    </body>
+</html>
