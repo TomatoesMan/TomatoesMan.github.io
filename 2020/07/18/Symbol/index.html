@@ -1,0 +1,1068 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>Symbol - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"前言这篇文章说实话，在写完的那一刻真的对 Symbol 这个类型肃然起敬，平时真的不用这个数据类型，也没有想过会用它，之前还是停留在只是知道这个单词的阶段，在写完后才发觉它的强大。\nSymbol，ES6 中新增的数据类型，为什么要增加这么一个数据类型？当初一个面试官这么问的我，当时年少轻狂的我，内心的 os 是，我哪知道 🤣！其实还是对 Symbol 这个数据类型不熟悉。\n在 ES6 之前，对象的键只能是字符串类型，但是这样有个问题，就是会造成键名命名冲突，后者覆盖前者，这个时候就需要一个唯一值来充当键名，Symbol 横空出世。\n\n\n1、概念symbol 是一种基本数据类型，Symbol()函数会返回 symbol 类型的值，该类型具有静态属性和静态方法。但是它不是构造函数，不能用 new Symbol()来创建。\n12let symbol = Symbol();typeof symbol; // \"symbol\"\n\nSymbol 作为对象属性时，当在对象内部时，必须要用方括号括起来，不用方括号括起来代表的是字符串。\n123456let s = Symbol();let obj = &#123;  [s]: \"Jack\",&#125;;obj[s]; // \"Jack\"obj.s; // undefined\n\n而且当要取该属性的值时，不能用点运算符，因为点运算符后面同样是字符串类型。\n创建 Symbol 数据类型时，都是 Symbol()这么创建的，当打印出来时，都为 Symbol()，这样很难区别各个 Symbol 类型的变量是什么意思。所以在 Symbol 函数内可以接收一个字符串的参数，表示该定义 Symbol 类型变量的描述。\n123let s1 = Symbol(\"a\");console.log(s1); // Symbol(a)s1.toString(); // \"Symbol(a)\"\n\n如果 Symbol 类型接收的一个对象类型的话，那就会先调用其内部的 toString 方法，将其变为一个字符串，然后才生成一个 Symbol 值。\n12345678let arr = [1, 2, 3];let s1 = Symbol(arr);console.log(s1); // Symbol(1,2,3)let obj = &#123;  toString: () =&gt; \"abc\",&#125;;let s2 = Symbol(obj);console.log(s2); // Symbol(abc)\n\nSymbol 类型的变量是不能和其他变量参与运算的，而且其只能转为 String 类型和 Boolean 类型。\n12345let s = Symbol();console.log(\"1\" + s); // TypeError: Cannot convert a Symbol value to a strings.toString(); // \"Symbol()\"Boolean(s); // trueNumber(s); // TypeError: Cannot convert a Symbol value to a number\n\n2、Symbol.prototype.description当给 Symbol 添加描述时，可以通过 Symbol.prototype.description 来获取该描述。\n12let s = Symbol(\"Jack\");s.description; // 'Jack'\n\n3、Symbol.for(key)和 Symbol.keyFor(sym)最开始看到这两个方法时，我以为是两个遍历的方法 😅。\n\nSymbol.for(key)：使用给定的 key 搜索现有的 symbol，如果找到则返回该 symbol。否则将使用给定的 key 在全局 symbol 注册表中创建一个新的 symbol。\nSymbol.keyFor(sym)：从全局 symbol 注册表中，为给定的 symbol 检索一个 key。\n\n123let s1 = Symbol.for(\"foo\");let s2 = Symbol.for(\"foo\");s1 === s2; // true\n\nSymbol.for 会搜索有没有以该参数作为名称的 Symbol 值。如果有，就返回这个 Symbol 值，否则就新建一个以该字符串为名称的 Symbol 值，并将其注册到全局。所以由其创建的两个相同描述的值会相等。这种创建就和普通的 Symbol()有着截然不同的结果了：\n123let s1 = Symbol(\"foo\");let s2 = Symbol(\"foo\");s1 === s2; // false\n\n因为不管怎样 Symbol()返回的都是一个全新的值，换句话说 Symbol()生成的值没有注册在全局中，所以返回的值都是全新的，而 Symbol.for()会在先在全局中查找，有就返回这个值，没有则创建新的值，但新的值也是挂载在全局中的。\nSymbol.keyFor(sym)是在全局中查找是否有该 Symbol 值，有则返回该描述。\n1234let s1 = Symbol.for(\"Jack\");Symbol.keyFor(s1); // 'Jack'let s2 = Symbol(\"Rose\");Symbol.keyFor(s2); // undefined\n\n因为 s2 没有挂载在全局中，所以 Symbol.keyFor()找不到它，故返回 undefined。\n4、内置的 Symbol 属性除了定义自己使用的 Symbol 值以外，ES6 还提供了 13（有可能今后会更多 😛） 个内置的 Symbol 值，指向语言内部使用的方法。\n4.1 Symbol.asyncIteratorSymbol.asyncIterator 符号指定了一个对象的默认异步迭代器。如果一个对象设置了这个属性，它就是异步可迭代对象，可用于 for await…of 循环。换句话说一个异步可迭代对象内部必须有 Symbol.asyncIterator 属性。\n12345678910111213141516const myAsyncIterable = new Object();myAsyncIterable[Symbol.asyncIterator] = async function* () &#123;  yield \"hello\";  yield \"async\";  yield \"iteration!\";&#125;;(async () =&gt; &#123;  for await (const x of myAsyncIterable) &#123;    console.log(x);    // expected output:    //    \"hello\"    //    \"async\"    //    \"iteration!\"  &#125;&#125;)();\n\n当执行 for await…of 时，就会执行该变量中 Symbol.asyncIterator 属性值。\n4.2、Symbol.hasInstanceSymbol.hasInstance 用于判断某对象是否为某构造器的实例。因此你可以用它自定义 instanceof 操作符在某个类上的行为。换句话说当判断一个实例是否为一个类的实例时，其实就是执行该类里面的 Symbol.hasInstance 属性。\n1234567class Fu &#123;  [Symbol.hasInstance](num) &#123;    return num === 1;  &#125;&#125;1 instanceof new Fu(); // true2 instanceof new Fu(); // false\n\n4.3、Symbol.isConcatSpreadable内置的 Symbol.isConcatSpreadable 符号用于配置某对象作为 Array.prototype.concat()方法的参数时是否展开其数组元素。\n123456789// 默认情况下let arr = [1, 2, 3];let brr = [4, 5, 6];arr.concat(brr); // [1, 2, 3, 4, 5, 6]// 设置了Symbol.isConcatSpreadable后let arr = [1, 2, 3];let brr = [4, 5, 6];brr[Symbol.isConcatSpreadable] = false;arr.concat(brr); // [1, 2, 3, [4, 5, 6]]\n\n将数组的 Symbol.isConcatSpreadable 属性设置为 false 后，使用 concat 方法时该数据就不会展开。\n对于类数组而言，默认数组使用 concat 方法该类数组是不展开的，我们可以给类数组的 Symbol.isConcatSpreadable 设置为 true，这样就可以展开了，并且完成了类数组转换为数组，这样类数组转数组又多了一个方法。\n12345678910111213// 默认情况下function foo(x, y) &#123;  let arr = [].concat(arguments);  console.log(arr); //[Arguments(2)]&#125;foo(1, 2);// 设置了Symbol.isConcatSpreadable为true后function foo(x, y) &#123;  arguments[Symbol.isConcatSpreadable] = true;  let arr = [].concat(arguments);  console.log(arr); //[1, 2]&#125;foo(1, 2);\n\n4.4、Symbol.iteratorSymbol.iterator 为每一个对象定义了默认的迭代器。该迭代器可以被 for…of 循环使用。\n12345678const myIterable = &#123;&#125;;myIterable[Symbol.iterator] = function* () &#123;  yield 1;  yield 2;  yield 3;&#125;;[...myIterable]; // [1, 2, 3]\n\n对象进行 for…of 循环时，会调用 Symbol.iterator 方法，\n4.5、Symbol.matchSymbol.match 指定了匹配的是正则表达式而不是字符串。String.prototype.match() 方法会调用此函数。换句话说就是当 str.match()执行时如果该属性存在，就会返回该方法的返回值。\n123456class foo &#123;  [Symbol.match](string) &#123;    return string;  &#125;&#125;\"Jack\".match(new foo()); // 'Jack'\n\n除上述之外，MDN 还提出了该属性另外一个功能：此函数还用于标识对象是否具有正则表达式的行为。比如， String.prototype.startsWith()，String.prototype.endsWith() 和 String.prototype.includes() 这些方法会检查其第一个参数是否是正则表达式，是正则表达式就抛出一个 TypeError。现在，如果 match symbol 设置为 false（或者一个 假值），就表示该对象不打算用作正则表达式对象。\n123456\"/bar/\".startsWith(/bar/); // TypeError: First argument to String.prototype.startsWith must not be a regular expression// 当设置为false之后var re = /foo/;re[Symbol.match] = false;\"/foo/\".startsWith(re); // true\"/baz/\".endsWith(re); // false\n\n4.6、Symbol.matchAllSymbol.matchAll 返回一个迭代器，该迭代器根据字符串生成正则表达式的匹配项。此函数可以被 String.prototype.matchAll() 方法调用。\n123\"abc\".matchAll(/a/);// 等价于/a/[Symbol.matchAll](\"abc\");\n\n4.7、Symbol.replaceSymbol.replace 这个属性指定了当一个字符串替换所匹配字符串时所调用的方法。String.prototype.replace() 方法会调用此方法。\n1234567891011121314String.prototype.replace(searchValue, replaceValue);// 等同于searchValue[Symbol.replace](this, replaceValue);// 例子class Replace1 &#123;  constructor(value) &#123;    this.value = value;  &#125;  [Symbol.replace](string) &#123;    return `s/$&#123;string&#125;/$&#123;this.value&#125;/g`;  &#125;&#125;console.log(\"foo\".replace(new Replace1(\"bar\"))); // \"s/foo/bar/g\"\n\n4.8、Symbol.searchSymbol.search 指定了一个搜索方法，这个方法接受用户输入的正则表达式，返回该正则表达式在字符串中匹配到的下标，这个方法由以下的方法来调用 String.prototype.search()。\n12345678910String.prototype.search(regexp);// 等价于regexp[Symbol.search](this);// 例子class Search1 &#123;  [Symbol.search](str) &#123;    return `$&#123;str&#125; Word`;  &#125;&#125;\"Hello\".search(new Search1()); // Hello Word\n\n4.9、Symbol.speciesSymbol.species 是个函数值属性，其被构造函数用以创建派生对象，换句话说 species 访问器属性允许子类覆盖对象的默认构造函数。\n我们举个例子：\n123456// 默认情况下class MyArray extends Array &#123;&#125;let arr = new MyArray(1, 2, 3);let brr = arr.map((item) =&gt; item);brr instanceof MyArray; // truebrr instanceof Array; // true\n\n类 MyArray 继承于 Array，arr 为 MyArray 的实例，brr 为 arr 的衍生物，所以 brr 是 MyArray 的实例，并且由于原型链的缘故，brr 也是 Array 的实例。如果此时，我们只想让 brr 为 Array 的实例，那 Symbol.species 属性值就派上用场了。\n123456789101112131415class MyArray extends Array &#123;  static get [Symbol.species]() &#123;    return Array;  &#125;&#125;let arr = new MyArray(1, 2, 3);let brr = arr.map((item) =&gt; item);brr instanceof MyArray; // falsebrr instanceof Array; // true// 默认情况下class MyArray extends Array &#123;  static get [Symbol.species]() &#123;    return this;  &#125;&#125;\n\n值得注意的是，定义 Symbol.species 属性时，前面必须声明是静态的 static 并且要运用 get 取值器。\n4.10、Symbol.splitSymbol.split 指向 一个正则表达式的索引处分割字符串的方法。 这个方法通过 String.prototype.split() 调用。\n12345678910String.prototype.split(separator, limit);// 等价于separator[Symbol.split](this, limit);// 例子class Split1 &#123;  [Symbol.split](str) &#123;    return `$&#123;str&#125; Word`;  &#125;&#125;\"Hello\".split(new Split1()); // Hello Word\n\n4.11、Symbol.toPrimitiveSymbol.toPrimitive 是一个内置的 Symbol 值，它是作为对象的函数值属性存在的，当一个对象转换为对应的原始值时，会调用此函数。该函数在调用时，会传递一个字符串参数 hint，表示要转换到的原始值的预期类型。字符串 hint 的类型有三种：’number’, ‘string’, ‘default’。\n1234567891011121314151617let obj =  &#123;    [Symbol.toPrimitive](hint) &#123;      switch (hint) &#123;        case \"number\":          return 123;        case \"string\":          return \"123\";        case \"default\":          return \"default\";        default:          throw new Error();      &#125;    &#125;,  &#125; + obj; // 123`$&#123;obj&#125;`; // '123'obj + \"\"; // \"default\"\n\n4.12、Symbol.toStringTagSymbol.toStringTag 是一个内置 symbol，它通常作为对象的属性键使用，对应的属性值应该为字符串类型，这个字符串用来表示该对象的自定义类型标签，通常只有内置的 Object.prototype.toString() 方法会去读取这个标签并把它包含在自己的返回值里。通俗点讲就是在 Object.prototype.toString()去判断自定义对象的数据类型时，返回的都是 object，可以通过这个属性来给自定义对象添加类型标签。在我之前写的【重学 JS 之路】js 基础类型和引用类型写到最精确判断数据类型的方法就是 Object.prototype.toString()，至于是为什么，在这就不过多阐述了，可以看这篇文章。\n12Object.prototype.toString.call('123'); // [object String]...more\n\n另外一些对象类型则不然，toString() 方法能识别它们是因为引擎为它们设置好了 toStringTag 标签：\n1234Object.prototype.toString.call(new Map()); // \"[object Map]\"Object.prototype.toString.call(function* () &#123;&#125;); // \"[object GeneratorFunction]\"Object.prototype.toString.call(Promise.resolve()); // \"[object Promise]\"...more\n\n当我们自己定义一个类时，调用 Object.prototype.toString()时，由于没有内部定义 toStringTag 标签，所以只能返回”[object Object]”\n123456789class Foo &#123;&#125;Object.prototype.toString.call(new Foo()); // \"[object Object]\"// 设置Symbol.toStringTagclass Foo &#123;  get [Symbol.toStringTag]() &#123;    return \"Foo\";  &#125;&#125;Object.prototype.toString.call(new Foo()); // \"[object Foo]\"\n\n4.13、Symbol.unscopablessSymbol.unscopables 指用于指定对象值，其对象自身和继承的从关联对象的 with 环境绑定中排除的属性名称。说白了其属性就是控制，在 with 词法环境中哪些属性会被 with 删除。\n12345678910Array.prototype[Symbol.unscopabless];// &#123;//   copyWithin: true,//   entries: true,//   fill: true,//   find: true,//   findIndex: true,//   includes: true,//   keys: true// &#125;\n\n这里简单的讲解一下 with 函数，with 主要是用来对对象取值的，举个简单的例子：\n12345678910let obj = &#123;&#125;;with (obj) &#123;  let newa = a;  let newb = b;  console.log(newa + newb);&#125;// 等价于let newa = obj.a;let newb = obj.b;console.log(newa + newb);\n\nwith 的 优点：当 with 传入的值非常复杂时，即当 object 为非常复杂的嵌套结构时，with 就使得代码显得非常简洁。with 的缺点：js 的编译器会检测 with 块中的变量是否属于 with 传入的对象， 上述例子为例，js 会检测 a 和 b 是否属于 obj 对象，这样就会的导致 with 语句的执行速度大大下降，性能比较差。\n回归正题，我们举个例子看一下 Symbol.unscopables 属性的作用。\n12345678910111213141516171819202122let obj = &#123;  foo() &#123;    return 1;  &#125;,&#125;;with (obj) &#123;  foo(); // 1&#125;// 设置了Symbol.unscopableslet obj = &#123;  foo() &#123;    return 1;  &#125;,  get [Symbol.unscopables]() &#123;    return &#123;      foo: true,    &#125;;  &#125;,&#125;;with (obj) &#123;  foo(); // Uncaught ReferenceError: foo is not defined&#125;\n\n设置后报错的原因是因为 with 已经将 obj 中的 foo 方法删除了。\n此次也是对 Symbol 有了个重新的认识，也希望对你有所帮助。点个赞吧！💥🧡💖\n","dateCreated":"2020-07-18T14:42:08+08:00","dateModified":"2020-07-18T14:57:18+08:00","datePublished":"2020-07-18T14:42:08+08:00","description":"前言这篇文章说实话，在写完的那一刻真的对 Symbol 这个类型肃然起敬，平时真的不用这个数据类型，也没有想过会用它，之前还是停留在只是知道这个单词的阶段，在写完后才发觉它的强大。\nSymbol，ES6 中新增的数据类型，为什么要增加这么一个数据类型？当初一个面试官这么问的我，当时年少轻狂的我，内心的 os 是，我哪知道 🤣！其实还是对 Symbol 这个数据类型不熟悉。\n在 ES6 之前，对象的键只能是字符串类型，但是这样有个问题，就是会造成键名命名冲突，后者覆盖前者，这个时候就需要一个唯一值来充当键名，Symbol 横空出世。","headline":"Symbol","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/07/18/Symbol/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/07/18/Symbol/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="前言这篇文章说实话，在写完的那一刻真的对 Symbol 这个类型肃然起敬，平时真的不用这个数据类型，也没有想过会用它，之前还是停留在只是知道这个单词的阶段，在写完后才发觉它的强大。 Symbol，ES6 中新增的数据类型，为什么要增加这么一个数据类型？当初一个面试官这么问的我，当时年少轻狂的我，内心的 os 是，我哪知道 🤣！其实还是对 Symbol 这个数据类型不熟悉。 在 ES6 之前，对象">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Symbol">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/07/18/Symbol/index.html">
+<meta property="og:site_name" content="Tomato&#39;s blog">
+<meta property="og:description" content="前言这篇文章说实话，在写完的那一刻真的对 Symbol 这个类型肃然起敬，平时真的不用这个数据类型，也没有想过会用它，之前还是停留在只是知道这个单词的阶段，在写完后才发觉它的强大。 Symbol，ES6 中新增的数据类型，为什么要增加这么一个数据类型？当初一个面试官这么问的我，当时年少轻狂的我，内心的 os 是，我哪知道 🤣！其实还是对 Symbol 这个数据类型不熟悉。 在 ES6 之前，对象">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-07-18T06:42:08.000Z">
+<meta property="article:modified_time" content="2020-07-18T06:57:18.205Z">
+<meta property="article:author" content="TomatoMan">
+<meta property="article:tag" content="ES6">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Symbol
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-07-18T14:42:08+08:00">
+	
+		    7月 18, 2020
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/ES6/">ES6</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>这篇文章说实话，在写完的那一刻真的对 Symbol 这个类型肃然起敬，平时真的不用这个数据类型，也没有想过会用它，之前还是停留在只是知道这个单词的阶段，在写完后才发觉它的强大。</p>
+<p>Symbol，ES6 中新增的数据类型，为什么要增加这么一个数据类型？当初一个面试官这么问的我，当时年少轻狂的我，内心的 os 是，我哪知道 🤣！其实还是对 Symbol 这个数据类型不熟悉。</p>
+<p>在 ES6 之前，对象的键只能是字符串类型，但是这样有个问题，就是会造成键名命名冲突，后者覆盖前者，这个时候就需要一个唯一值来充当键名，Symbol 横空出世。</p>
+<a id="more"></a>
+
+<h2 id="1、概念"><a href="#1、概念" class="headerlink" title="1、概念"></a>1、概念</h2><p>symbol 是一种基本数据类型，Symbol()函数会返回 symbol 类型的值，该类型具有静态属性和静态方法。但是它不是构造函数，不能用 new Symbol()来创建。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> symbol = <span class="built_in">Symbol</span>();</span><br><span class="line"><span class="keyword">typeof</span> symbol; <span class="comment">// "symbol"</span></span><br></pre></td></tr></table></figure>
+
+<p>Symbol 作为对象属性时，当在对象内部时，必须要用方括号括起来，不用方括号括起来代表的是字符串。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s = <span class="built_in">Symbol</span>();</span><br><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  [s]: <span class="string">"Jack"</span>,</span><br><span class="line">&#125;;</span><br><span class="line">obj[s]; <span class="comment">// "Jack"</span></span><br><span class="line">obj.s; <span class="comment">// undefined</span></span><br></pre></td></tr></table></figure>
+
+<p>而且当要取该属性的值时，不能用点运算符，因为点运算符后面同样是字符串类型。</p>
+<p>创建 Symbol 数据类型时，都是 Symbol()这么创建的，当打印出来时，都为 Symbol()，这样很难区别各个 Symbol 类型的变量是什么意思。所以在 Symbol 函数内可以接收一个字符串的参数，表示该定义 Symbol 类型变量的描述。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s1 = <span class="built_in">Symbol</span>(<span class="string">"a"</span>);</span><br><span class="line"><span class="built_in">console</span>.log(s1); <span class="comment">// Symbol(a)</span></span><br><span class="line">s1.toString(); <span class="comment">// "Symbol(a)"</span></span><br></pre></td></tr></table></figure>
+
+<p>如果 Symbol 类型接收的一个对象类型的话，那就会先调用其内部的 toString 方法，将其变为一个字符串，然后才生成一个 Symbol 值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="keyword">let</span> s1 = <span class="built_in">Symbol</span>(arr);</span><br><span class="line"><span class="built_in">console</span>.log(s1); <span class="comment">// Symbol(1,2,3)</span></span><br><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  toString: <span class="function"><span class="params">()</span> =&gt;</span> <span class="string">"abc"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> s2 = <span class="built_in">Symbol</span>(obj);</span><br><span class="line"><span class="built_in">console</span>.log(s2); <span class="comment">// Symbol(abc)</span></span><br></pre></td></tr></table></figure>
+
+<p>Symbol 类型的变量是不能和其他变量参与运算的，而且其只能转为 String 类型和 Boolean 类型。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s = <span class="built_in">Symbol</span>();</span><br><span class="line"><span class="built_in">console</span>.log(<span class="string">"1"</span> + s); <span class="comment">// TypeError: Cannot convert a Symbol value to a string</span></span><br><span class="line">s.toString(); <span class="comment">// "Symbol()"</span></span><br><span class="line"><span class="built_in">Boolean</span>(s); <span class="comment">// true</span></span><br><span class="line"><span class="built_in">Number</span>(s); <span class="comment">// TypeError: Cannot convert a Symbol value to a number</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2、Symbol-prototype-description"><a href="#2、Symbol-prototype-description" class="headerlink" title="2、Symbol.prototype.description"></a>2、Symbol.prototype.description</h2><p>当给 Symbol 添加描述时，可以通过 Symbol.prototype.description 来获取该描述。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s = <span class="built_in">Symbol</span>(<span class="string">"Jack"</span>);</span><br><span class="line">s.description; <span class="comment">// 'Jack'</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="3、Symbol-for-key-和-Symbol-keyFor-sym"><a href="#3、Symbol-for-key-和-Symbol-keyFor-sym" class="headerlink" title="3、Symbol.for(key)和 Symbol.keyFor(sym)"></a>3、Symbol.for(key)和 Symbol.keyFor(sym)</h2><p>最开始看到这两个方法时，我以为是两个遍历的方法 😅。</p>
+<ol>
+<li>Symbol.for(key)：使用给定的 key 搜索现有的 symbol，如果找到则返回该 symbol。否则将使用给定的 key 在全局 symbol 注册表中创建一个新的 symbol。</li>
+<li>Symbol.keyFor(sym)：从全局 symbol 注册表中，为给定的 symbol 检索一个 key。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s1 = <span class="built_in">Symbol</span>.for(<span class="string">"foo"</span>);</span><br><span class="line"><span class="keyword">let</span> s2 = <span class="built_in">Symbol</span>.for(<span class="string">"foo"</span>);</span><br><span class="line">s1 === s2; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>Symbol.for 会搜索有没有以该参数作为名称的 Symbol 值。如果有，就返回这个 Symbol 值，否则就新建一个以该字符串为名称的 Symbol 值，并将其注册到全局。所以由其创建的两个相同描述的值会相等。这种创建就和普通的 Symbol()有着截然不同的结果了：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s1 = <span class="built_in">Symbol</span>(<span class="string">"foo"</span>);</span><br><span class="line"><span class="keyword">let</span> s2 = <span class="built_in">Symbol</span>(<span class="string">"foo"</span>);</span><br><span class="line">s1 === s2; <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<p>因为不管怎样 Symbol()返回的都是一个全新的值，换句话说 Symbol()生成的值没有注册在全局中，所以返回的值都是全新的，而 Symbol.for()会在先在全局中查找，有就返回这个值，没有则创建新的值，但新的值也是挂载在全局中的。</p>
+<p>Symbol.keyFor(sym)是在全局中查找是否有该 Symbol 值，有则返回该描述。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> s1 = <span class="built_in">Symbol</span>.for(<span class="string">"Jack"</span>);</span><br><span class="line"><span class="built_in">Symbol</span>.keyFor(s1); <span class="comment">// 'Jack'</span></span><br><span class="line"><span class="keyword">let</span> s2 = <span class="built_in">Symbol</span>(<span class="string">"Rose"</span>);</span><br><span class="line"><span class="built_in">Symbol</span>.keyFor(s2); <span class="comment">// undefined</span></span><br></pre></td></tr></table></figure>
+
+<p>因为 s2 没有挂载在全局中，所以 Symbol.keyFor()找不到它，故返回 undefined。</p>
+<h2 id="4、内置的-Symbol-属性"><a href="#4、内置的-Symbol-属性" class="headerlink" title="4、内置的 Symbol 属性"></a>4、内置的 Symbol 属性</h2><p>除了定义自己使用的 Symbol 值以外，ES6 还提供了 13（有可能今后会更多 😛） 个内置的 Symbol 值，指向语言内部使用的方法。</p>
+<h3 id="4-1-Symbol-asyncIterator"><a href="#4-1-Symbol-asyncIterator" class="headerlink" title="4.1 Symbol.asyncIterator"></a>4.1 Symbol.asyncIterator</h3><p>Symbol.asyncIterator 符号指定了一个对象的默认异步迭代器。如果一个对象设置了这个属性，它就是异步可迭代对象，可用于 for await…of 循环。换句话说一个异步可迭代对象内部必须有 Symbol.asyncIterator 属性。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> myAsyncIterable = <span class="keyword">new</span> <span class="built_in">Object</span>();</span><br><span class="line">myAsyncIterable[<span class="built_in">Symbol</span>.asyncIterator] = <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>* (<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"hello"</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"async"</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="string">"iteration!"</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">(<span class="keyword">async</span> () =&gt; &#123;</span><br><span class="line">  <span class="keyword">for</span> <span class="keyword">await</span> (<span class="keyword">const</span> x <span class="keyword">of</span> myAsyncIterable) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(x);</span><br><span class="line">    <span class="comment">// expected output:</span></span><br><span class="line">    <span class="comment">//    "hello"</span></span><br><span class="line">    <span class="comment">//    "async"</span></span><br><span class="line">    <span class="comment">//    "iteration!"</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;)();</span><br></pre></td></tr></table></figure>
+
+<p>当执行 for await…of 时，就会执行该变量中 Symbol.asyncIterator 属性值。</p>
+<h3 id="4-2、Symbol-hasInstance"><a href="#4-2、Symbol-hasInstance" class="headerlink" title="4.2、Symbol.hasInstance"></a>4.2、Symbol.hasInstance</h3><p>Symbol.hasInstance 用于判断某对象是否为某构造器的实例。因此你可以用它自定义 instanceof 操作符在某个类上的行为。换句话说当判断一个实例是否为一个类的实例时，其实就是执行该类里面的 Symbol.hasInstance 属性。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Fu</span> </span>&#123;</span><br><span class="line">  [<span class="built_in">Symbol</span>.hasInstance](num) &#123;</span><br><span class="line">    <span class="keyword">return</span> num === <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="number">1</span> <span class="keyword">instanceof</span> <span class="keyword">new</span> Fu(); <span class="comment">// true</span></span><br><span class="line"><span class="number">2</span> <span class="keyword">instanceof</span> <span class="keyword">new</span> Fu(); <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3、Symbol-isConcatSpreadable"><a href="#4-3、Symbol-isConcatSpreadable" class="headerlink" title="4.3、Symbol.isConcatSpreadable"></a>4.3、Symbol.isConcatSpreadable</h3><p>内置的 Symbol.isConcatSpreadable 符号用于配置某对象作为 Array.prototype.concat()方法的参数时是否展开其数组元素。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 默认情况下</span></span><br><span class="line"><span class="keyword">let</span> arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="keyword">let</span> brr = [<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line">arr.concat(brr); <span class="comment">// [1, 2, 3, 4, 5, 6]</span></span><br><span class="line"><span class="comment">// 设置了Symbol.isConcatSpreadable后</span></span><br><span class="line"><span class="keyword">let</span> arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="keyword">let</span> brr = [<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line">brr[<span class="built_in">Symbol</span>.isConcatSpreadable] = <span class="literal">false</span>;</span><br><span class="line">arr.concat(brr); <span class="comment">// [1, 2, 3, [4, 5, 6]]</span></span><br></pre></td></tr></table></figure>
+
+<p>将数组的 Symbol.isConcatSpreadable 属性设置为 false 后，使用 concat 方法时该数据就不会展开。</p>
+<p>对于类数组而言，默认数组使用 concat 方法该类数组是不展开的，我们可以给类数组的 Symbol.isConcatSpreadable 设置为 true，这样就可以展开了，并且完成了类数组转换为数组，这样类数组转数组又多了一个方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 默认情况下</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">x, y</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> arr = [].concat(<span class="built_in">arguments</span>);</span><br><span class="line">  <span class="built_in">console</span>.log(arr); <span class="comment">//[Arguments(2)]</span></span><br><span class="line">&#125;</span><br><span class="line">foo(<span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line"><span class="comment">// 设置了Symbol.isConcatSpreadable为true后</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">x, y</span>) </span>&#123;</span><br><span class="line">  <span class="built_in">arguments</span>[<span class="built_in">Symbol</span>.isConcatSpreadable] = <span class="literal">true</span>;</span><br><span class="line">  <span class="keyword">let</span> arr = [].concat(<span class="built_in">arguments</span>);</span><br><span class="line">  <span class="built_in">console</span>.log(arr); <span class="comment">//[1, 2]</span></span><br><span class="line">&#125;</span><br><span class="line">foo(<span class="number">1</span>, <span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4、Symbol-iterator"><a href="#4-4、Symbol-iterator" class="headerlink" title="4.4、Symbol.iterator"></a>4.4、Symbol.iterator</h3><p>Symbol.iterator 为每一个对象定义了默认的迭代器。该迭代器可以被 for…of 循环使用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> myIterable = &#123;&#125;;</span><br><span class="line">myIterable[<span class="built_in">Symbol</span>.iterator] = <span class="function"><span class="keyword">function</span>* (<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">yield</span> <span class="number">3</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">[...myIterable]; <span class="comment">// [1, 2, 3]</span></span><br></pre></td></tr></table></figure>
+
+<p>对象进行 for…of 循环时，会调用 Symbol.iterator 方法，</p>
+<h3 id="4-5、Symbol-match"><a href="#4-5、Symbol-match" class="headerlink" title="4.5、Symbol.match"></a>4.5、Symbol.match</h3><p>Symbol.match 指定了匹配的是正则表达式而不是字符串。String.prototype.match() 方法会调用此函数。换句话说就是当 str.match()执行时如果该属性存在，就会返回该方法的返回值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">foo</span> </span>&#123;</span><br><span class="line">  [<span class="built_in">Symbol</span>.match](string) &#123;</span><br><span class="line">    <span class="keyword">return</span> string;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="string">"Jack"</span>.match(<span class="keyword">new</span> foo()); <span class="comment">// 'Jack'</span></span><br></pre></td></tr></table></figure>
+
+<p>除上述之外，MDN 还提出了该属性另外一个功能：此函数还用于标识对象是否具有正则表达式的行为。比如， String.prototype.startsWith()，String.prototype.endsWith() 和 String.prototype.includes() 这些方法会检查其第一个参数是否是正则表达式，是正则表达式就抛出一个 TypeError。现在，如果 match symbol 设置为 false（或者一个 假值），就表示该对象不打算用作正则表达式对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"/bar/"</span>.startsWith(<span class="regexp">/bar/</span>); <span class="comment">// TypeError: First argument to String.prototype.startsWith must not be a regular expression</span></span><br><span class="line"><span class="comment">// 当设置为false之后</span></span><br><span class="line"><span class="keyword">var</span> re = <span class="regexp">/foo/</span>;</span><br><span class="line">re[<span class="built_in">Symbol</span>.match] = <span class="literal">false</span>;</span><br><span class="line"><span class="string">"/foo/"</span>.startsWith(re); <span class="comment">// true</span></span><br><span class="line"><span class="string">"/baz/"</span>.endsWith(re); <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-6、Symbol-matchAll"><a href="#4-6、Symbol-matchAll" class="headerlink" title="4.6、Symbol.matchAll"></a>4.6、Symbol.matchAll</h3><p>Symbol.matchAll 返回一个迭代器，该迭代器根据字符串生成正则表达式的匹配项。此函数可以被 String.prototype.matchAll() 方法调用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"abc"</span>.matchAll(<span class="regexp">/a/</span>);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line">/a/[<span class="built_in">Symbol</span>.matchAll](<span class="string">"abc"</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-7、Symbol-replace"><a href="#4-7、Symbol-replace" class="headerlink" title="4.7、Symbol.replace"></a>4.7、Symbol.replace</h3><p>Symbol.replace 这个属性指定了当一个字符串替换所匹配字符串时所调用的方法。String.prototype.replace() 方法会调用此方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">String</span>.prototype.replace(searchValue, replaceValue);</span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line">searchValue[<span class="built_in">Symbol</span>.replace](<span class="keyword">this</span>, replaceValue);</span><br><span class="line"><span class="comment">// 例子</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Replace1</span> </span>&#123;</span><br><span class="line">  <span class="keyword">constructor</span>(value) &#123;</span><br><span class="line">    <span class="keyword">this</span>.value = value;</span><br><span class="line">  &#125;</span><br><span class="line">  [<span class="built_in">Symbol</span>.replace](string) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`s/<span class="subst">$&#123;string&#125;</span>/<span class="subst">$&#123;<span class="keyword">this</span>.value&#125;</span>/g`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">console</span>.log(<span class="string">"foo"</span>.replace(<span class="keyword">new</span> Replace1(<span class="string">"bar"</span>))); <span class="comment">// "s/foo/bar/g"</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-8、Symbol-search"><a href="#4-8、Symbol-search" class="headerlink" title="4.8、Symbol.search"></a>4.8、Symbol.search</h3><p>Symbol.search 指定了一个搜索方法，这个方法接受用户输入的正则表达式，返回该正则表达式在字符串中匹配到的下标，这个方法由以下的方法来调用 String.prototype.search()。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">String</span>.prototype.search(regexp);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line">regexp[<span class="built_in">Symbol</span>.search](<span class="keyword">this</span>);</span><br><span class="line"><span class="comment">// 例子</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Search1</span> </span>&#123;</span><br><span class="line">  [<span class="built_in">Symbol</span>.search](str) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`<span class="subst">$&#123;str&#125;</span> Word`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="string">"Hello"</span>.search(<span class="keyword">new</span> Search1()); <span class="comment">// Hello Word</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-9、Symbol-species"><a href="#4-9、Symbol-species" class="headerlink" title="4.9、Symbol.species"></a>4.9、Symbol.species</h3><p>Symbol.species 是个函数值属性，其被构造函数用以创建派生对象，换句话说 species 访问器属性允许子类覆盖对象的默认构造函数。</p>
+<p>我们举个例子：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 默认情况下</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyArray</span> <span class="keyword">extends</span> <span class="title">Array</span> </span>&#123;&#125;</span><br><span class="line"><span class="keyword">let</span> arr = <span class="keyword">new</span> MyArray(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line"><span class="keyword">let</span> brr = arr.map(<span class="function">(<span class="params">item</span>) =&gt;</span> item);</span><br><span class="line">brr <span class="keyword">instanceof</span> MyArray; <span class="comment">// true</span></span><br><span class="line">brr <span class="keyword">instanceof</span> <span class="built_in">Array</span>; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>类 MyArray 继承于 Array，arr 为 MyArray 的实例，brr 为 arr 的衍生物，所以 brr 是 MyArray 的实例，并且由于原型链的缘故，brr 也是 Array 的实例。如果此时，我们只想让 brr 为 Array 的实例，那 Symbol.species 属性值就派上用场了。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyArray</span> <span class="keyword">extends</span> <span class="title">Array</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">get</span> [Symbol.species]() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Array</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> arr = <span class="keyword">new</span> MyArray(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line"><span class="keyword">let</span> brr = arr.map(<span class="function">(<span class="params">item</span>) =&gt;</span> item);</span><br><span class="line">brr <span class="keyword">instanceof</span> MyArray; <span class="comment">// false</span></span><br><span class="line">brr <span class="keyword">instanceof</span> <span class="built_in">Array</span>; <span class="comment">// true</span></span><br><span class="line"><span class="comment">// 默认情况下</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyArray</span> <span class="keyword">extends</span> <span class="title">Array</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">get</span> [Symbol.species]() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的是，定义 Symbol.species 属性时，前面必须声明是静态的 static 并且要运用 get 取值器。</p>
+<h3 id="4-10、Symbol-split"><a href="#4-10、Symbol-split" class="headerlink" title="4.10、Symbol.split"></a>4.10、Symbol.split</h3><p>Symbol.split 指向 一个正则表达式的索引处分割字符串的方法。 这个方法通过 String.prototype.split() 调用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">String</span>.prototype.split(separator, limit);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line">separator[<span class="built_in">Symbol</span>.split](<span class="keyword">this</span>, limit);</span><br><span class="line"><span class="comment">// 例子</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Split1</span> </span>&#123;</span><br><span class="line">  [<span class="built_in">Symbol</span>.split](str) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`<span class="subst">$&#123;str&#125;</span> Word`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="string">"Hello"</span>.split(<span class="keyword">new</span> Split1()); <span class="comment">// Hello Word</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-11、Symbol-toPrimitive"><a href="#4-11、Symbol-toPrimitive" class="headerlink" title="4.11、Symbol.toPrimitive"></a>4.11、Symbol.toPrimitive</h3><p>Symbol.toPrimitive 是一个内置的 Symbol 值，它是作为对象的函数值属性存在的，当一个对象转换为对应的原始值时，会调用此函数。该函数在调用时，会传递一个字符串参数 hint，表示要转换到的原始值的预期类型。字符串 hint 的类型有三种：’number’, ‘string’, ‘default’。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj =</span><br><span class="line">  &#123;</span><br><span class="line">    [<span class="built_in">Symbol</span>.toPrimitive](hint) &#123;</span><br><span class="line">      <span class="keyword">switch</span> (hint) &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">"number"</span>:</span><br><span class="line">          <span class="keyword">return</span> <span class="number">123</span>;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">"string"</span>:</span><br><span class="line">          <span class="keyword">return</span> <span class="string">"123"</span>;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">"default"</span>:</span><br><span class="line">          <span class="keyword">return</span> <span class="string">"default"</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125; + obj; <span class="comment">// 123</span></span><br><span class="line"><span class="string">`<span class="subst">$&#123;obj&#125;</span>`</span>; <span class="comment">// '123'</span></span><br><span class="line">obj + <span class="string">""</span>; <span class="comment">// "default"</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-12、Symbol-toStringTag"><a href="#4-12、Symbol-toStringTag" class="headerlink" title="4.12、Symbol.toStringTag"></a>4.12、Symbol.toStringTag</h3><p>Symbol.toStringTag 是一个内置 symbol，它通常作为对象的属性键使用，对应的属性值应该为字符串类型，这个字符串用来表示该对象的自定义类型标签，通常只有内置的 Object.prototype.toString() 方法会去读取这个标签并把它包含在自己的返回值里。通俗点讲就是在 Object.prototype.toString()去判断自定义对象的数据类型时，返回的都是 object，可以通过这个属性来给自定义对象添加类型标签。<br>在我之前写的<a href="https://juejin.im/post/5ede00aa518825431f7c6ff5" target="_blank" rel="noopener">【重学 JS 之路】js 基础类型和引用类型</a>写到最精确判断数据类型的方法就是 Object.prototype.toString()，至于是为什么，在这就不过多阐述了，可以看这篇文章。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Object</span>.prototype.toString.call(<span class="string">'123'</span>); <span class="comment">// [object String]</span></span><br><span class="line">...more</span><br></pre></td></tr></table></figure>
+
+<p>另外一些对象类型则不然，toString() 方法能识别它们是因为引擎为它们设置好了 toStringTag 标签：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Object</span>.prototype.toString.call(<span class="keyword">new</span> <span class="built_in">Map</span>()); <span class="comment">// "[object Map]"</span></span><br><span class="line"><span class="built_in">Object</span>.prototype.toString.call(<span class="function"><span class="keyword">function</span>* (<span class="params"></span>) </span>&#123;&#125;); <span class="comment">// "[object GeneratorFunction]"</span></span><br><span class="line"><span class="built_in">Object</span>.prototype.toString.call(<span class="built_in">Promise</span>.resolve()); <span class="comment">// "[object Promise]"</span></span><br><span class="line">...more</span><br></pre></td></tr></table></figure>
+
+<p>当我们自己定义一个类时，调用 Object.prototype.toString()时，由于没有内部定义 toStringTag 标签，所以只能返回”[object Object]”</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Foo</span> </span>&#123;&#125;</span><br><span class="line"><span class="built_in">Object</span>.prototype.toString.call(<span class="keyword">new</span> Foo()); <span class="comment">// "[object Object]"</span></span><br><span class="line"><span class="comment">// 设置Symbol.toStringTag</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Foo</span> </span>&#123;</span><br><span class="line">  <span class="keyword">get</span> [Symbol.toStringTag]() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">"Foo"</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">Object</span>.prototype.toString.call(<span class="keyword">new</span> Foo()); <span class="comment">// "[object Foo]"</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-13、Symbol-unscopabless"><a href="#4-13、Symbol-unscopabless" class="headerlink" title="4.13、Symbol.unscopabless"></a>4.13、Symbol.unscopabless</h3><p>Symbol.unscopables 指用于指定对象值，其对象自身和继承的从关联对象的 with 环境绑定中排除的属性名称。说白了其属性就是控制，在 with 词法环境中哪些属性会被 with 删除。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Array</span>.prototype[<span class="built_in">Symbol</span>.unscopabless];</span><br><span class="line"><span class="comment">// &#123;</span></span><br><span class="line"><span class="comment">//   copyWithin: true,</span></span><br><span class="line"><span class="comment">//   entries: true,</span></span><br><span class="line"><span class="comment">//   fill: true,</span></span><br><span class="line"><span class="comment">//   find: true,</span></span><br><span class="line"><span class="comment">//   findIndex: true,</span></span><br><span class="line"><span class="comment">//   includes: true,</span></span><br><span class="line"><span class="comment">//   keys: true</span></span><br><span class="line"><span class="comment">// &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里简单的讲解一下 with 函数，with 主要是用来对对象取值的，举个简单的例子：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;&#125;;</span><br><span class="line"><span class="keyword">with</span> (obj) &#123;</span><br><span class="line">  <span class="keyword">let</span> newa = a;</span><br><span class="line">  <span class="keyword">let</span> newb = b;</span><br><span class="line">  <span class="built_in">console</span>.log(newa + newb);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="keyword">let</span> newa = obj.a;</span><br><span class="line"><span class="keyword">let</span> newb = obj.b;</span><br><span class="line"><span class="built_in">console</span>.log(newa + newb);</span><br></pre></td></tr></table></figure>
+
+<p>with 的 优点：<br>当 with 传入的值非常复杂时，即当 object 为非常复杂的嵌套结构时，with 就使得代码显得非常简洁。<br>with 的缺点：<br>js 的编译器会检测 with 块中的变量是否属于 with 传入的对象， 上述例子为例，js 会检测 a 和 b 是否属于 obj 对象，这样就会的导致 with 语句的执行速度大大下降，性能比较差。</p>
+<p>回归正题，我们举个例子看一下 Symbol.unscopables 属性的作用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  foo() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">with</span> (obj) &#123;</span><br><span class="line">  foo(); <span class="comment">// 1</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 设置了Symbol.unscopables</span></span><br><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  foo() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="keyword">get</span> [Symbol.unscopables]() &#123;</span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">      foo: <span class="literal">true</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">with</span> (obj) &#123;</span><br><span class="line">  foo(); <span class="comment">// Uncaught ReferenceError: foo is not defined</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>设置后报错的原因是因为 with 已经将 obj 中的 foo 方法删除了。</p>
+<p>此次也是对 Symbol 有了个重新的认识，也希望对你有所帮助。<br>点个赞吧！💥🧡💖</p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/09/Set%E5%92%8CMap/"
+                    data-tooltip="Set和Map"
+                    aria-label="下一篇: Set和Map"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/09/Set%E5%92%8CMap/"
+                    data-tooltip="Set和Map"
+                    aria-label="下一篇: Set和Map"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/18/Symbol/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+            <div id="algolia-search-modal" class="modal-container">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="close-button"><i class="fa fa-times"></i></span>
+            <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+                <span class="searchby-algolia-text text-color-light text-small">by</span>
+                <img class="searchby-algolia-logo" src="/assets/images/logo-algolia-nebula-blue-full.svg">
+            </a>
+            <i class="search-icon fa fa-search"></i>
+            <form id="algolia-search-form">
+                <input type="text" id="algolia-search-input" name="search"
+                    class="form-control input--large search-input" placeholder="Search "
+                    />
+            </form>
+        </div>
+        <div class="modal-body">
+            <div class="no-result text-color-light text-center">没有找到文章</div>
+            <div class="results">
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <h3 class="media-heading">js基础类型和引用类型</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月8日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <h3 class="media-heading">类型转换</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <h3 class="media-heading">深拷贝和浅拷贝</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>这属于面试的高频问题了，深浅拷贝的问题只针对于引用数据类型，对于基本数据类型并没有这样的问题。<br>为什么引用数据类型会出现这样的问题？<br>第一篇 js 数据类型中有提到，引用数据类型存放在堆中，栈中存放的是该引用类型的地址，以便能通过地址快速找到该引用数据。<br>所以在拷贝时就会出现只拷贝引用类型的地址和再在堆中开辟一个新的内存空间的两种拷贝方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <h3 class="media-heading">原型与原型链</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <h3 class="media-heading">继承</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <h3 class="media-heading">new关键词</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月21日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>大部分面试的时候，面试官先已原型链铺路，随后就会问你 new 关键词都做了些什么？也是为了下一个继承问题再次铺路！<br>那这篇文章我们就来讲讲这个 new！<br>我们通常在什么地方能看到它，在创建实例的时候，new 后面加上一个构造函数，就是创建这个构造函数的实例。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <h3 class="media-heading">作用域</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>何为作用域，查找度娘百科中是这么定义的：</p>
+<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <h3 class="media-heading">执行上下文</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <h3 class="media-heading">闭包</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月12日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <h3 class="media-heading">call、apply和bind</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月18日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>call、apply 和 bind 都是对 this 值得改变，那三者有什么不同呢？本篇通过模拟三者代码的形式来讲解。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="results-count text-medium"
+                data-message-zero="没有找到文章"
+                data-message-one="找到 1 篇文章"
+                data-message-other="找到 {n} 篇文章">
+                找到 16 篇文章
+            </p>
+        </div>
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+    
+<script src="/assets/js/moment-with-locales.js"></script>
+
+    
+<script src="/assets/js/algoliasearch.js"></script>
+
+    <script>
+      var algoliaClient = algoliasearch('2ILBT3HBZ2', '2f34a1f86e95da45573cd221c686a072');
+      var algoliaIndex = algoliaClient.initIndex('my-hexo-blog');
+    </script>
+
+
+    </body>
+</html>
