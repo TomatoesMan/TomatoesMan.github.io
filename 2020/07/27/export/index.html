@@ -1,0 +1,1056 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>export - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"在原始的 JS 时代，是没有模块化的概念的，随着前端项目的越来越大，并且前端的地位越来越主要，急需模块化的概念引入进来。在 ES6 之前，社区制定了一些模块化的方案，如：CommonJS 和 AMD。ES6 之后这两个正在慢慢的被 import 和 export 所取代。\n这让我想起了之前面试的时候一个面试官问我 ES6 为什么要引入 import 和 export，我的回答是为了模块化的加载，避免全局污染，然后他问了一个让我至今难忘的问题，为什么是 import 和 export 这两个单词？？？？😓😓😓 当时的我顿时语塞，只能弱弱的回答一句，JS 规范的….\n\n\n1、exportexport 用于规定模块对外的接口，不管你是否定义，export 导出的模块都是处于严格模式，不能用在嵌入式脚本中。\nexport 导出的语法有两种：\n\n命名导出（每个模块包含任意数量）\n默认导出（每个模块只包含一个）\n\n1.1、命名导出如在 a.js 文件中，想要导出几个变量，我们可以写成如下两种形式。\n12345678910// a.js// 第一种export var a = 1;export var b = 2;export var c = 3;// 第二种var a = 1;var b = 2;var c = 3;export &#123; a, b, c &#125;;\n\n以上两种形式是等价的，但是倾向于第二种写法，因为第二种写法便于阅读，能一眼看出要导出的变量是什么。\n除了能导出变量，我们在开发中应用最多的就是导出函数和类。\n1234567891011export function foo(a, b) &#123;  return a + b;&#125;// 等价于function foo(a, b) &#123;  return a + b;&#125;export &#123; foo &#125;;// 应用到箭头函数const foo = (a, b) =&gt; a + b;export &#123; foo &#125;;\n\n导出的名称除了可以是该变量原本的名称外，还可以通过 as 关键词对其重命名。\n12var a = 1;export &#123; a as b, a as c &#125;;\n\n上述通过 as 关键词对 a 变量进行了重命名，并且同一个变量可以重命名多次。\n有一点值得注意的是，export 输出的一定是一个变量，变量，变量，重要的事情说三遍。\n12345// 第一种export 1; // 报错// 第二种var a = 1;export a; // 报错\n\n上述两种导出接口的方式均报错，因为输出均不是变量，第二种虽然 a 是变量，但是实际上跟第一种是一样的，只是变换了一下写法，函数和类也是如此。\n1.2、默认导出我们可以通过 export default 命名对模块进行默认导出，并且一个模块中只能有一个默认导出。\n123456789101112export default function (a, b) &#123;  return a + b;&#125;export default function foo(a, b) &#123;  return a + b;&#125;export default 1;var a = 1;export default a;\n\n上一节我们说 export 最重要的是导出的接口是变量，在默认导出中发现如果导出的不是变量的话也是可以的，这是因为 default 其实就是一个变量，所以可以导出的不是一个变量，但是 default 后面跟着的是一个变量话，会报错。\n1export default var a = 1; // 报错\n\n2、importimport 命令用于输入其他模块提供的功能。export 有两种语法形式，对应的 import 也有两种语法形式\n2.1、当输出是用的 export 语法时123456// a.jsvar a = 1;var b = 2;export &#123; a, b &#125;;import &#123; a, b &#125; from \"a.js\";\n\n当 export 输出模块接口时，import 要用大括号来进行导入，默认情况下导入的名称要和输出的名称一致。如果想要更改导入的名称，我们同样可以用 as 关键词进行重命名。\n123456// a.jsvar a = 1;var b = 2;export &#123; a, b &#125;;import &#123; a as a1, b as b1 &#125; from \"a.js\";\n\n2.2、当输出是用的 export default 语法时12345// a.jsvar a = 1;export default a;import a from \"a.js\";\n\n也可以和上一节一块使用：\n12345678// a.jsvar a = 1;var b = 2;var c = 3;export default c;export &#123; a, b &#125;;import c, &#123; a, b &#125; from \"a.js\";\n\n2.3、import 的其他特性import 表达式引入进来的所有模块都是只读形式，也就是说，不允许在加载模块的脚本里面，改写模块。\n123import &#123; a &#125; from \"a.js\";a = &#123;&#125;; // Syntax Error : 'a' is read-only;\n\n但是如果引入的模块是一个对象类型的话，它的属性是可以更改。\n12import &#123; a &#125; from \"a.js\";a.name = \"Jack\"; // 合法\n\n虽说此功能合法，但是在实际开发中还是要慎用。\nimport 后面的 from 指定模块文件的位置，可以是相对路径，也可以是绝对路径，.js 后缀可以省略。如果只是模块名，不带有路径，那么必须有配置文件，告诉 JavaScript 引擎该模块的位置。\n1import &#123; myMethod &#125; from \"util\";\n\n上面代码中，util 是模块文件名，由于不带有路径，必须通过配置，告诉引擎怎么取到这个模块。\nimport 还有一个特性时，import 具有提升，会提升到整个文件的最顶端，首先执行。\n12foo(); // 不会报错import &#123; foo &#125; from \"a.js\";\n\n上述例子不会报错的原因就是因为 import 具有提升，提升到了 foo()之前，首先执行。\n除此之外，import 不能当做表达式和变量，不能参与运算。\n1234567import &#123;'1' + foo&#125; from 'a.js' // 报错// 报错if (x === 1) &#123;  import &#123; foo &#125; from 'module1';&#125; else &#123;  import &#123; foo &#125; from 'module2';&#125;\n\nimport 还可以仅仅导入模块，但不做任何的输入。\n1import \"a.js\";\n\n这将运行模块中的全局代码, 但实际上不导入任何值。\n与上述相反的是，将模块全部导入，整体加载，并且同样支持通过 as 关键词重命名。\n123import * from 'a.js'import * as b from 'a.js'\n\n2.4、export 和 import 复合写法如果在一个模块中先输入后输出同一个模块，那可以运用 export 和 import 复合写法，即 export…from…\n1234export &#123; foo, bar &#125; from \"a.js\";// 可以简单的理解为import &#123; foo, bar &#125; from \"a.js\";export &#123; foo, bar &#125;;\n\n值得注意的是，上述的 foo 和 bar 并没有引入到当前模块，当前模块相当于一个中转站，只是对 foo 和 bar 进行转发。\n同样我们依然可以对转发的模块进行重命名，而且可以通过*对其全部转发。\n12export &#123; foo as foo1 &#125; from \"a.js\";export * from \"a.js\";\n\n在 ES2020 中还可以对*通过 as 关键词进行重命名。\n1234export * as a from \"a.js\";// 等价于import * as a from \"a.js\";export &#123; a &#125;;\n\n除此之外，在 export 和 import 复合写法中，我们可以对默认模块进行转发。\n1export &#123; default &#125; from \"a.js\";\n\n是不是感觉很奇怪，没错，我第一次见到的时候也很奇怪，但是后期想了一下，export…from…导入变量，default 也是变量的一种，所以这种也就不奇怪了。\n依旧可以通过 as 进行重命名。\n1export &#123; default as foo &#125; from \"a.js\";\n\n并且还可以将具名接口改为默认接口。\n1234export &#123; foo as default &#125; from \"a.js\";// 等价于import &#123; foo &#125; from \"a.js\";export default foo;\n\n2.5、import()ES2020 中新增了 import()，主要是为了解决无法动态导入的问题，因为之前也说过，JS 为了静态分析优化，所以 import 必须放在整个模块的顶部，并且不能和表达式混合使用，这在有些场景，尤其是 Node 中很是麻烦，这也是为什么 Node 还是偏向用 require 导入接口的原因之一。\n使用 import()动态加载接口的用法很简单，括号内填写要动态导入接口就可以。\n1import(\"a.js\");\n\nimport()会返回一个 Promise 对象。\n1import(\"a.js\").then((value) =&gt; console.log(value));\n\nimport()的应用，最直观的就是应用在动态加载组件上，我们可以看到 dva 中dva/dynamic其内部主要就是运用了 import()，对组件和路由进行动态加载，达到优化目的。\n1234567import dynamic from \"dva/dynamic\";const UserPageComponent = dynamic(&#123;  app,  models: () =&gt; [import(\"./models/users\")],  component: () =&gt; import(\"./routes/UserPage\"),&#125;);\n","dateCreated":"2020-07-27T22:53:43+08:00","dateModified":"2020-07-27T22:56:10+08:00","datePublished":"2020-07-27T22:53:43+08:00","description":"在原始的 JS 时代，是没有模块化的概念的，随着前端项目的越来越大，并且前端的地位越来越主要，急需模块化的概念引入进来。在 ES6 之前，社区制定了一些模块化的方案，如：CommonJS 和 AMD。ES6 之后这两个正在慢慢的被 import 和 export 所取代。\n这让我想起了之前面试的时候一个面试官问我 ES6 为什么要引入 import 和 export，我的回答是为了模块化的加载，避免全局污染，然后他问了一个让我至今难忘的问题，为什么是 import 和 export 这两个单词？？？？😓😓😓 当时的我顿时语塞，只能弱弱的回答一句，JS 规范的….","headline":"export","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/07/27/export/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/07/27/export/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="在原始的 JS 时代，是没有模块化的概念的，随着前端项目的越来越大，并且前端的地位越来越主要，急需模块化的概念引入进来。在 ES6 之前，社区制定了一些模块化的方案，如：CommonJS 和 AMD。ES6 之后这两个正在慢慢的被 import 和 export 所取代。 这让我想起了之前面试的时候一个面试官问我 ES6 为什么要引入 import 和 export，我的回答是为了模块化的加载，避">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="export">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/07/27/export/index.html">
+<meta property="og:site_name" content="Tomato&#39;s blog">
+<meta property="og:description" content="在原始的 JS 时代，是没有模块化的概念的，随着前端项目的越来越大，并且前端的地位越来越主要，急需模块化的概念引入进来。在 ES6 之前，社区制定了一些模块化的方案，如：CommonJS 和 AMD。ES6 之后这两个正在慢慢的被 import 和 export 所取代。 这让我想起了之前面试的时候一个面试官问我 ES6 为什么要引入 import 和 export，我的回答是为了模块化的加载，避">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-07-27T14:53:43.000Z">
+<meta property="article:modified_time" content="2020-07-27T14:56:10.085Z">
+<meta property="article:author" content="TomatoMan">
+<meta property="article:tag" content="ES6">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            export
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-07-27T22:53:43+08:00">
+	
+		    7月 27, 2020
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/ES6/">ES6</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>在原始的 JS 时代，是没有模块化的概念的，随着前端项目的越来越大，并且前端的地位越来越主要，急需模块化的概念引入进来。在 ES6 之前，社区制定了一些模块化的方案，如：CommonJS 和 AMD。ES6 之后这两个正在慢慢的被 import 和 export 所取代。</p>
+<p>这让我想起了之前面试的时候一个面试官问我 ES6 为什么要引入 import 和 export，我的回答是为了模块化的加载，避免全局污染，然后他问了一个让我至今难忘的问题，为什么是 import 和 export 这两个单词？？？？😓😓😓 当时的我顿时语塞，只能弱弱的回答一句，JS 规范的….</p>
+<a id="more"></a>
+
+<h2 id="1、export"><a href="#1、export" class="headerlink" title="1、export"></a>1、export</h2><p>export 用于规定模块对外的接口，不管你是否定义，export 导出的模块都是处于严格模式，不能用在嵌入式脚本中。</p>
+<p>export 导出的语法有两种：</p>
+<ol>
+<li>命名导出（每个模块包含任意数量）</li>
+<li>默认导出（每个模块只包含一个）</li>
+</ol>
+<h3 id="1-1、命名导出"><a href="#1-1、命名导出" class="headerlink" title="1.1、命名导出"></a>1.1、命名导出</h3><p>如在 a.js 文件中，想要导出几个变量，我们可以写成如下两种形式。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// a.js</span></span><br><span class="line"><span class="comment">// 第一种</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">var</span> b = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">var</span> c = <span class="number">3</span>;</span><br><span class="line"><span class="comment">// 第二种</span></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">var</span> b = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">var</span> c = <span class="number">3</span>;</span><br><span class="line"><span class="keyword">export</span> &#123; a, b, c &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>以上两种形式是等价的，但是倾向于第二种写法，因为第二种写法便于阅读，能一眼看出要导出的变量是什么。</p>
+<p>除了能导出变量，我们在开发中应用最多的就是导出函数和类。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">export</span> &#123; foo &#125;;</span><br><span class="line"><span class="comment">// 应用到箭头函数</span></span><br><span class="line"><span class="keyword">const</span> foo = <span class="function">(<span class="params">a, b</span>) =&gt;</span> a + b;</span><br><span class="line"><span class="keyword">export</span> &#123; foo &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>导出的名称除了可以是该变量原本的名称外，还可以通过 as 关键词对其重命名。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">export</span> &#123; a <span class="keyword">as</span> b, a <span class="keyword">as</span> c &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>上述通过 as 关键词对 a 变量进行了重命名，并且同一个变量可以重命名多次。</p>
+<p>有一点值得注意的是，export 输出的一定是一个变量，变量，变量，重要的事情说三遍。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 第一种</span></span><br><span class="line"><span class="keyword">export</span> <span class="number">1</span>; <span class="comment">// 报错</span></span><br><span class="line"><span class="comment">// 第二种</span></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">export</span> a; <span class="comment">// 报错</span></span><br></pre></td></tr></table></figure>
+
+<p>上述两种导出接口的方式均报错，因为输出均不是变量，第二种虽然 a 是变量，但是实际上跟第一种是一样的，只是变换了一下写法，函数和类也是如此。</p>
+<h3 id="1-2、默认导出"><a href="#1-2、默认导出" class="headerlink" title="1.2、默认导出"></a>1.2、默认导出</h3><p>我们可以通过 export default 命名对模块进行默认导出，并且一个模块中只能有一个默认导出。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="function"><span class="keyword">function</span> (<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> a;</span><br></pre></td></tr></table></figure>
+
+<p>上一节我们说 export 最重要的是导出的接口是变量，在默认导出中发现如果导出的不是变量的话也是可以的，这是因为 default 其实就是一个变量，所以可以导出的不是一个变量，但是 default 后面跟着的是一个变量话，会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="keyword">var</span> a = <span class="number">1</span>; <span class="comment">// 报错</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2、import"><a href="#2、import" class="headerlink" title="2、import"></a>2、import</h2><p>import 命令用于输入其他模块提供的功能。export 有两种语法形式，对应的 import 也有两种语法形式</p>
+<h3 id="2-1、当输出是用的-export-语法时"><a href="#2-1、当输出是用的-export-语法时" class="headerlink" title="2.1、当输出是用的 export 语法时"></a>2.1、当输出是用的 export 语法时</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// a.js</span></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">var</span> b = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">export</span> &#123; a, b &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> &#123; a, b &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>当 export 输出模块接口时，import 要用大括号来进行导入，默认情况下导入的名称要和输出的名称一致。如果想要更改导入的名称，我们同样可以用 as 关键词进行重命名。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// a.js</span></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">var</span> b = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">export</span> &#123; a, b &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> &#123; a <span class="keyword">as</span> a1, b <span class="keyword">as</span> b1 &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2、当输出是用的-export-default-语法时"><a href="#2-2、当输出是用的-export-default-语法时" class="headerlink" title="2.2、当输出是用的 export default 语法时"></a>2.2、当输出是用的 export default 语法时</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// a.js</span></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> a;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> a <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>也可以和上一节一块使用：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// a.js</span></span><br><span class="line"><span class="keyword">var</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">var</span> b = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">var</span> c = <span class="number">3</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> c;</span><br><span class="line"><span class="keyword">export</span> &#123; a, b &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> c, &#123; a, b &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3、import-的其他特性"><a href="#2-3、import-的其他特性" class="headerlink" title="2.3、import 的其他特性"></a>2.3、import 的其他特性</h3><p>import 表达式引入进来的所有模块都是只读形式，也就是说，不允许在加载模块的脚本里面，改写模块。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; a &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"></span><br><span class="line">a = &#123;&#125;; <span class="comment">// Syntax Error : 'a' is read-only;</span></span><br></pre></td></tr></table></figure>
+
+<p>但是如果引入的模块是一个对象类型的话，它的属性是可以更改。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; a &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line">a.name = <span class="string">"Jack"</span>; <span class="comment">// 合法</span></span><br></pre></td></tr></table></figure>
+
+<p>虽说此功能合法，但是在实际开发中还是要慎用。</p>
+<p>import 后面的 from 指定模块文件的位置，可以是相对路径，也可以是绝对路径，.js 后缀可以省略。如果只是模块名，不带有路径，那么必须有配置文件，告诉 JavaScript 引擎该模块的位置。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; myMethod &#125; <span class="keyword">from</span> <span class="string">"util"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，util 是模块文件名，由于不带有路径，必须通过配置，告诉引擎怎么取到这个模块。</p>
+<p>import 还有一个特性时，import 具有提升，会提升到整个文件的最顶端，首先执行。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">foo(); <span class="comment">// 不会报错</span></span><br><span class="line"><span class="keyword">import</span> &#123; foo &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>上述例子不会报错的原因就是因为 import 具有提升，提升到了 foo()之前，首先执行。</p>
+<p>除此之外，import 不能当做表达式和变量，不能参与运算。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123;<span class="string">'1'</span> + foo&#125; <span class="keyword">from</span> <span class="string">'a.js'</span> <span class="comment">// 报错</span></span><br><span class="line"><span class="comment">// 报错</span></span><br><span class="line"><span class="keyword">if</span> (x === <span class="number">1</span>) &#123;</span><br><span class="line">  <span class="keyword">import</span> &#123; foo &#125; <span class="keyword">from</span> <span class="string">'module1'</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  <span class="keyword">import</span> &#123; foo &#125; <span class="keyword">from</span> <span class="string">'module2'</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>import 还可以仅仅导入模块，但不做任何的输入。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这将运行模块中的全局代码, 但实际上不导入任何值。</p>
+<p>与上述相反的是，将模块全部导入，整体加载，并且同样支持通过 as 关键词重命名。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> * <span class="keyword">from</span> <span class="string">'a.js'</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> * <span class="keyword">as</span> b <span class="keyword">from</span> <span class="string">'a.js'</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-4、export-和-import-复合写法"><a href="#2-4、export-和-import-复合写法" class="headerlink" title="2.4、export 和 import 复合写法"></a>2.4、export 和 import 复合写法</h2><p>如果在一个模块中先输入后输出同一个模块，那可以运用 export 和 import 复合写法，即 export…from…</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> &#123; foo, bar &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="comment">// 可以简单的理解为</span></span><br><span class="line"><span class="keyword">import</span> &#123; foo, bar &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="keyword">export</span> &#123; foo, bar &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的是，上述的 foo 和 bar 并没有引入到当前模块，当前模块相当于一个中转站，只是对 foo 和 bar 进行转发。</p>
+<p>同样我们依然可以对转发的模块进行重命名，而且可以通过*对其全部转发。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> &#123; foo <span class="keyword">as</span> foo1 &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="keyword">export</span> * <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>在 ES2020 中还可以对*通过 as 关键词进行重命名。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> * <span class="keyword">as</span> a <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="keyword">import</span> * <span class="keyword">as</span> a <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="keyword">export</span> &#123; a &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>除此之外，在 export 和 import 复合写法中，我们可以对默认模块进行转发。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> &#123; <span class="keyword">default</span> &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>是不是感觉很奇怪，没错，我第一次见到的时候也很奇怪，但是后期想了一下，export…from…导入变量，default 也是变量的一种，所以这种也就不奇怪了。</p>
+<p>依旧可以通过 as 进行重命名。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> &#123; <span class="keyword">default</span> <span class="keyword">as</span> foo &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>并且还可以将具名接口改为默认接口。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> &#123; foo <span class="keyword">as</span> <span class="keyword">default</span> &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="keyword">import</span> &#123; foo &#125; <span class="keyword">from</span> <span class="string">"a.js"</span>;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> foo;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-5、import"><a href="#2-5、import" class="headerlink" title="2.5、import()"></a>2.5、import()</h2><p>ES2020 中新增了 import()，主要是为了解决无法动态导入的问题，因为之前也说过，JS 为了静态分析优化，所以 import 必须放在整个模块的顶部，并且不能和表达式混合使用，这在有些场景，尤其是 Node 中很是麻烦，这也是为什么 Node 还是偏向用 require 导入接口的原因之一。</p>
+<p>使用 import()动态加载接口的用法很简单，括号内填写要动态导入接口就可以。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span>(<span class="string">"a.js"</span>);</span><br></pre></td></tr></table></figure>
+
+<p>import()会返回一个 Promise 对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span>(<span class="string">"a.js"</span>).then(<span class="function">(<span class="params">value</span>) =&gt;</span> <span class="built_in">console</span>.log(value));</span><br></pre></td></tr></table></figure>
+
+<p>import()的应用，最直观的就是应用在动态加载组件上，我们可以看到 dva 中<a href="https://dvajs.com/api/#dva-dynamic" target="_blank" rel="noopener">dva/dynamic</a>其内部主要就是运用了 import()，对组件和路由进行动态加载，达到优化目的。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> dynamic <span class="keyword">from</span> <span class="string">"dva/dynamic"</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> UserPageComponent = dynamic(&#123;</span><br><span class="line">  app,</span><br><span class="line">  models: <span class="function"><span class="params">()</span> =&gt;</span> [<span class="keyword">import</span>(<span class="string">"./models/users"</span>)],</span><br><span class="line">  component: <span class="function"><span class="params">()</span> =&gt;</span> <span class="keyword">import</span>(<span class="string">"./routes/UserPage"</span>),</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/18/Symbol/"
+                    data-tooltip="Symbol"
+                    aria-label="下一篇: Symbol"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/27/export/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/27/export/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/27/export/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/18/Symbol/"
+                    data-tooltip="Symbol"
+                    aria-label="下一篇: Symbol"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Diesen Beitrag teilen"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/27/export/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/27/export/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/27/export/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/07/27/export/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/07/27/export/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/07/27/export/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+            <div id="algolia-search-modal" class="modal-container">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="close-button"><i class="fa fa-times"></i></span>
+            <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+                <span class="searchby-algolia-text text-color-light text-small">by</span>
+                <img class="searchby-algolia-logo" src="/assets/images/logo-algolia-nebula-blue-full.svg">
+            </a>
+            <i class="search-icon fa fa-search"></i>
+            <form id="algolia-search-form">
+                <input type="text" id="algolia-search-input" name="search"
+                    class="form-control input--large search-input" placeholder="Search "
+                    />
+            </form>
+        </div>
+        <div class="modal-body">
+            <div class="no-result text-color-light text-center">没有找到文章</div>
+            <div class="results">
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <h3 class="media-heading">js基础类型和引用类型</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月8日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <h3 class="media-heading">类型转换</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <h3 class="media-heading">深拷贝和浅拷贝</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>这属于面试的高频问题了，深浅拷贝的问题只针对于引用数据类型，对于基本数据类型并没有这样的问题。<br>为什么引用数据类型会出现这样的问题？<br>第一篇 js 数据类型中有提到，引用数据类型存放在堆中，栈中存放的是该引用类型的地址，以便能通过地址快速找到该引用数据。<br>所以在拷贝时就会出现只拷贝引用类型的地址和再在堆中开辟一个新的内存空间的两种拷贝方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <h3 class="media-heading">原型与原型链</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <h3 class="media-heading">继承</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <h3 class="media-heading">new关键词</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月21日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>大部分面试的时候，面试官先已原型链铺路，随后就会问你 new 关键词都做了些什么？也是为了下一个继承问题再次铺路！<br>那这篇文章我们就来讲讲这个 new！<br>我们通常在什么地方能看到它，在创建实例的时候，new 后面加上一个构造函数，就是创建这个构造函数的实例。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <h3 class="media-heading">作用域</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>何为作用域，查找度娘百科中是这么定义的：</p>
+<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <h3 class="media-heading">执行上下文</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <h3 class="media-heading">闭包</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月12日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <h3 class="media-heading">call、apply和bind</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月18日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>call、apply 和 bind 都是对 this 值得改变，那三者有什么不同呢？本篇通过模拟三者代码的形式来讲解。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="results-count text-medium"
+                data-message-zero="没有找到文章"
+                data-message-one="找到 1 篇文章"
+                data-message-other="找到 {n} 篇文章">
+                找到 17 篇文章
+            </p>
+        </div>
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+    
+<script src="/assets/js/moment-with-locales.js"></script>
+
+    
+<script src="/assets/js/algoliasearch.js"></script>
+
+    <script>
+      var algoliaClient = algoliasearch('2ILBT3HBZ2', '2f34a1f86e95da45573cd221c686a072');
+      var algoliaIndex = algoliaClient.initIndex('my-hexo-blog');
+    </script>
+
+
+    </body>
+</html>
