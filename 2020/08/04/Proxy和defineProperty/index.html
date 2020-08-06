@@ -1,0 +1,1109 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>Proxy和defineProperty - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"前言虽然我的主技术栈是 React 的，但是每当面试的时候，面试官几乎都会问你说一下 React 和 Vue 的区别，在说道双向数据绑定的时候，面试官会下意识的问一句，你说一下 Vue 的双向数据绑定的原理，这个时候 Object.defineProperty 就出场了，但是在 Vue3.0 中，Proxy 取代了 Object.defineProperty，成为双向绑定的底层原理，这个时候 Proxy 就显得尤为重要。\n本篇文章先以 Object.defineProperty 作为引入，之后讲解 Proxy，最后比较两者之间的优劣。\n\n\n1、Object.defineProperty 数据劫持Object.defineProperty() 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。\n该方法接受三个参数，第一个参数是 obj：要定义属性的对象，第二个参数是 prop：要定义或修改的属性的名称或 Symbol，第三个参数是 descriptor：要定义或修改的属性描述符。\n12345const obj = &#123;&#125;;Object.defineProperty(obj, \"property\", &#123;  value: 18,&#125;);console.log(obj.property); // 18\n\n虽然我们可以直接添加属性和值，但是使用这种方式，我们能进行更多的配置。\n函数的第三个参数 descriptor 所表示的属性描述符有两种形式：数据描述符和存取描述符。数据描述符是一个具有值的属性，该值可以是可写的，也可以是不可写的。存取描述符是由 getter 函数和 setter 函数所描述的属性。一个描述符只能是这两者其中之一；不能同时是两者。\n这两种同时拥有下列两种键值：\n\nconfigurable：当且仅当该属性的 configurable 键值为 true 时，该属性的描述符才能够被改变，同时该属性也能从对应的对象上被删除。默认为 false。\nenumerable：当且仅当该属性的 enumerable 键值为 true 时，该属性才会出现在对象的枚举属性中。默认为 false。\n\n12345678910111213const obj = &#123; property: 24 &#125;;Object.defineProperty(obj, \"property\", &#123;  configurable: true,&#125;);delete obj[\"property\"]; // trueobj; // &#123;&#125;// 改变状态const obj = &#123; property: 24 &#125;;Object.defineProperty(obj, \"property\", &#123;  configurable: false,&#125;);delete obj[\"property\"]; // falseobj; // &#123;'property': 24&#125;\n\n1234567891011121314151617181920212223const obj = &#123;  property1: 24,  property2: 34,  property3: 54,&#125;;Object.defineProperty(obj, \"property1\", &#123;  enumerable: true,&#125;);for (i in obj) &#123;  console.log(i);&#125;// property1// property2// property3// 改状态Object.defineProperty(obj, \"property1\", &#123;  enumerable: false,&#125;);for (i in obj) &#123;  console.log(i);&#125;// property2// property3\n\n数据描述符还具有以下可选键值：\n\nvalue：该属性对应的值。可以是任何有效的 JavaScript 值（数值，对象，函数等）。默认为 undefined。\nwritable：当且仅当该属性的 writable 键值为 true 时，属性的值，也就是上面的 value，才能被赋值运算符改变。默认为 false。\n\n12345const obj = &#123;&#125;;Object.defineProperty(obj, \"property1\", &#123;  value: 18,&#125;);obj; // &#123;'property1': 18&#125;\n\n123456789101112131415const obj = &#123;&#125;;Object.defineProperty(obj, \"property1\", &#123;  value: 18,  writable: false,&#125;);obj.property1 = 24;obj; // &#123;'property1': 18&#125;// 改变状态const obj = &#123;&#125;;Object.defineProperty(obj, \"property1\", &#123;  value: 18,  writable: true,&#125;);obj.property1 = 24;obj; // &#123;'property1': 24&#125;\n\n存取描述符还具有以下可选键值：\n\nget：属性的 getter 函数，如果没有 getter，则为 undefined。当访问该属性时，会调用此函数。执行时不传入任何参数，但是会传入 this 对象（由于继承关系，这里的 this 并不一定是定义该属性的对象）。该函数的返回值会被用作属性的值。默认为 undefined。\nset：属性的 setter 函数，如果没有 setter，则为 undefined。当属性值被修改时，会调用此函数。该方法接受一个参数（也就是被赋予的新值），会传入赋值时的 this 对象。默认为 undefined。\n\n123456789const obj = &#123;&#125;;Object.defineProperty(obj, \"property1\", &#123;  get(value) &#123;    return value;  &#125;,  set(newValue) &#123;    value = newValue;  &#125;,&#125;);\n\n2、Proxy 数据拦截Object.defineProperty 只能重定义获取和设置的行为，而 Proxy 相当于一个升级，它重定义了更多的行为，接下来我们对其进行深入讲解。\n首先，Proxy 是一个构造函数，可以通过 new 来创建它的实例，其接受两个参数，一个是 target：要使用 Proxy 包装的目标对象（可以是任何类型的对象，包括原生数组，函数，甚至另一个代理）。另外一个是 handler：一个通常以函数作为属性的对象，各属性中的函数分别定义了在执行各种操作时代理实例的行为。\n1let p = new Proxy(target, handler);\n\nhandler 对象的方法handler 中的所有方法都是可选的，如果没有定义哪个方法，那就保留原对象的默认行为。\n1、get()用于拦截对象的读取操作。该方法接收三个参数，target：目标对象，property：被获取的属性名，receiver：Proxy 或者继承 Proxy 的对象。\n1234567891011121314let person = &#123;  name: \"Jack\",&#125;;let p = new Proxy(person, &#123;  get(target, property) &#123;    if (property in target) &#123;      return target[property];    &#125; else &#123;      throw Error(\"不存在该属性\");    &#125;  &#125;,&#125;);p.name; // Jackp.age; // Uncaught Error: 不存在该属性\n\n查看第三个属性\n123456789let person = &#123;  name: \"Jack\",&#125;;let p = new Proxy(person, &#123;  get(target, property, receiver) &#123;    return receiver;  &#125;,&#125;);p.name === p; // true\n\n上面代码中，p 对象的 name 属性是由 p 对象提供的，所以 receiver 指向 proxy 对象。\n2、set()用于设置属性值操作的捕获器。该方法接收四个参数，target：目标对象，property：将被设置的属性名或 Symbol，value：新属性值，receiver：最初被调用的对象。通常是 proxy 本身，但 handler 的 set 方法也有可能在原型链上，或以其他方式被间接地调用（因此不一定是 proxy 本身）。\n1234567let person = &#123;&#125;;let p = new Proxy(person, &#123;  set(target, property, value, receiver) &#123;    target[property] = value;  &#125;,&#125;);p.name = 2;\n\n当给 Proxy 的实例添加属性的时候，就会调用 set()方法。\n下面我们来看一下 set()方法的第四个参数，一般情况下都是指向 proxy 本身。\n12345678let person = &#123;&#125;;let p = new Proxy(person, &#123;  set(target, property, value, receiver) &#123;    target[property] = receiver;  &#125;,&#125;);p.name = 2;p.name === p; // true\n\n但是也有其他情况，我们借用阮一峰：ECMAScript 6 入门-Proxy中谈到的例子：\n1234567891011const handler = &#123;  set: function (obj, prop, value, receiver) &#123;    obj[prop] = receiver;  &#125;,&#125;;const proxy = new Proxy(&#123;&#125;, handler);const myObj = &#123;&#125;;Object.setPrototypeOf(myObj, proxy);myObj.foo = \"bar\";myObj.foo === myObj; // true\n\n上面代码中，设置 myObj.foo 属性的值时，myObj 并没有 foo 属性，因此引擎会到 myObj 的原型链去找 foo 属性。myObj 的原型对象 proxy 是一个 Proxy 实例，设置它的 foo 属性会触发 set 方法。这时，第四个参数 receiver 就指向原始赋值行为所在的对象 myObj。\n值得注意一点的是，当该对象不可配置不可编写的时候，那么 set()方法将不起作用。\n123456789101112const obj = &#123;&#125;;Object.defineProperty(obj, \"foo\", &#123;  value: 18,  writable: false,&#125;);let p = new Proxy(obj, &#123;  set(target, property, value, receiver) &#123;    target[property] = value;  &#125;,&#125;);p.foo = 28;p.foo; // 18\n\n3、apply()用于拦截函数的调用。该方法接受三个参数，target：目标对象（函数）。thisArg：被调用时的上下文对象。argumentsList：被调用时的参数数组。\n当 Prxoy 的实例当做函数使用时，就会执行该方法。\n123456let p = new Proxy(function () &#123;&#125;, &#123;  apply(target, thisArg, argumentsList) &#123;    console.log(\"Hello Word\");  &#125;,&#125;);p(); // Hello Word\n\n4、has()是针对 in 操作符的代理方法。该方法接受两个参数，target：目标对象。prop：需要检查是否存在的属性。\n123456789let p = new Proxy(  &#123;&#125;,  &#123;    has(target, prop) &#123;      console.log(target, prop); // &#123;&#125; 'a'    &#125;,  &#125;);console.log(\"a\" in p); // false\n\nhas()方法只对 in 运算符有效，对 for…in…运算没有实际作用。\n12345678910111213141516let p = new Proxy(  &#123; value: 18 &#125;,  &#123;    has(target, prop) &#123;      if (prop === \"value\" &amp;&amp; target[prop] &lt; 20) &#123;        console.log(\"数值小于20\");        return false;      &#125;      return prop in target;    &#125;,  &#125;);\"value\" in p; // 数值小于20 falsefor (let a in p) &#123;  console.log(p[a]); // 18&#125;\n\n从上述例子可以看出，has 方法拦截只对 in 运算符有效，对 for…in…来说没有拦截效果。\n5、construct用于拦截 new 操作符. 为了使 new 操作符在生成的 Proxy 对象上生效，用于初始化代理的目标对象自身必须具有[[Construct]]内部方法（即 new target 必须是有效的）。该方法接收三个参数，target：目标对象。argumentsList：constructor 的参数列表。newTarget：最初被调用的构造函数。\n12345let p = new Proxy(function () &#123;&#125;, &#123;  construct(target, argumentsList, newTarget) &#123;    return &#123; value: argumentsList[0] &#125;;  &#125;,&#125;)(new p(1)).value; // 1\n\nconstruct()方法必须返回一个对象，不然不报错。\n123456let p = new Proxy(function () &#123;&#125;, &#123;  construct(target, argumentsList, newTarget) &#123;    console.log(\"Hello Word\");  &#125;,&#125;);new p(); // Uncaught TypeError: 'construct' on proxy: trap returned non-object ('undefined')\n\n6、deleteProperty用于拦截对对象属性的 delete 操作。该方法接受两个参数。target：目标对象。property：待删除的属性名。\n12345678910let p = new Proxy(  &#123;&#125;,  &#123;    deleteProperty(target, property) &#123;      console.log(\"called: \" + property);      return true;    &#125;,  &#125;);delete p.a; // \"called: a\"\n\n如果这个方法抛出错误或者返回 false，当前属性就无法被 delete 命令删除。注意，目标对象自身的不可配置（configurable）的属性，不能被 deleteProperty 方法删除，否则报错。\n7、defineProperty()用于拦截对对象的 Object.defineProperty() 操作。该方法接受三个参数，target：目标对象。property：待检索其描述的属性名。descriptor：待定义或修改的属性的描述符。\n123456789101112let p = new Proxy(  &#123;&#125;,  &#123;    defineProperty: function (target, prop, descriptor) &#123;      console.log(\"called: \" + prop);      return true;    &#125;,  &#125;);let desc = &#123; configurable: true, enumerable: true, value: 10 &#125;;Object.defineProperty(p, \"a\", desc); // \"called: a\"\n\n如果 defineProperty()方法内部没有任何操作，只返回 false，导致添加新属性总是无效。注意，这里的 false 只是用来提示操作失败，本身并不能阻止添加新属性。\n注意，如果目标对象不可扩展（non-extensible），则 defineProperty()不能增加目标对象上不存在的属性，否则会报错。另外，如果目标对象的某个属性不可写（writable）或不可配置（configurable），则 defineProperty()方法不得改变这两个设置。\n8、defineProperty()用法是拦截 Object.getOwnPropertyDescriptor()，必须返回一个 object 或 undefined。该方法接受两个参数，target：目标对象。prop：返回属性名称的描述。\n123456789101112let p = new Proxy(  &#123; a: 20 &#125;,  &#123;    getOwnPropertyDescriptor: function (target, prop) &#123;      console.log(\"called: \" + prop);      return &#123; configurable: true, enumerable: true, value: 10 &#125;;    &#125;,  &#125;);console.log(Object.getOwnPropertyDescriptor(p, \"a\").value); // \"called: a\"// 10\n\n9、getPrototypeOf()是一个代理（Proxy）方法，当读取代理对象的原型时，该方法就会被调用。该方法只接受一个参数，target：被代理的目标对象。返回值必须是一个对象或者 null。触发该方法的条件总共有 5 种：\n\nObject.getPrototypeOf()\nReflect.getPrototypeOf()\n__proto__\nObject.prototype.isPrototypeOf()\ninstanceof\n\n12345678910let proto = &#123;&#125;;let p = new Proxy(  &#123;&#125;,  &#123;    getPrototypeOf(target) &#123;      return proto;    &#125;,  &#125;);Object.getPrototypeOf(p) === proto; // true\n\n10、isExtensible()用于拦截对对象的 Object.isExtensible()。该方法接受一个参数。target：目标对象。返回值必须返回一个 Boolean 值或可转换成 Boolean 的值。\n123456789101112let p = new Proxy(  &#123;&#125;,  &#123;    isExtensible: function (target) &#123;      console.log(\"called\");      return true;    &#125;,  &#125;);console.log(Object.isExtensible(p)); // \"called\"// true\n\n注意，该方法有一个强制的约束，即 Object.isExtensible(proxy) 必须同 Object.isExtensible(target)返回相同值。也就是必须返回 true 或者为 true 的值,返回 false 和为 false 的值都会报错。\n12345678910let p = new Proxy(  &#123;&#125;,  &#123;    isExtensible: function (target) &#123;      return false;    &#125;,  &#125;);Object.isExtensible(p); // Uncaught TypeError: 'isExtensible' on proxy: trap result does not reflect extensibility of proxy target (which is 'true')\n\n11、ownKeys()用来拦截对象自身属性的读取操作。该方法接受一个参数，target：目标对象。\n具体拦截如下：\n\nObject.getOwnPropertyNames()\nObject.getOwnPropertySymbols()\nObject.keys()\nfor…in 循环\n\n该方法有几个约束条件：\n\nownKeys 的结果必须是一个数组\n数组的元素类型要么是一个 String ，要么是一个 Symbol\n结果列表必须包含目标对象的所有不可配置（non-configurable ）、自有（own）属性的 key\n如果目标对象不可扩展，那么结果列表必须包含目标对象的所有自有（own）属性的 key，不能有其它值\n\n1234567891011let target = &#123;  a: 1,  b: 2,  c: 3,&#125;;let p = new Proxy(target, &#123;  ownKeys(target) &#123;    return [\"a\"];  &#125;,&#125;);Object.keys(p); // ['a']\n\n12、preventExtensions()用于设置对 Object.preventExtensions()的拦截。该方法接受一个参数，target：所要拦截的目标对象。该方法返回一个布尔值。该方法有个限制，即如果目标对象是可扩展的，那么只能返回 false。\n12345678910let p = new Proxy(  &#123;&#125;,  &#123;    preventExtensions: function (target) &#123;      return true;    &#125;,  &#125;);Object.preventExtensions(p); // Uncaught TypeError: 'preventExtensions' on proxy: trap returned truish but the proxy target is extensible\n\n上面代码中，proxy.preventExtensions()方法返回 true，但这时 Object.isExtensible(proxy)会返回 true，因此报错。\n为了防止出现这个问题，通常要在 proxy.preventExtensions()方法里面，调用一次 Object.preventExtensions()。\n12345678910111213let p = new Proxy(  &#123;&#125;,  &#123;    preventExtensions: function (target) &#123;      console.log(\"called\");      Object.preventExtensions(target);      return true;    &#125;,  &#125;);console.log(Object.preventExtensions(p)); // \"called\"// false\n\n13、setPrototypeOf()用来拦截 Object.setPrototypeOf()。该方法接受两个参数，target：被拦截目标对象。prototype：对象新原型或为 null。如果成功修改了[[Prototype]], setPrototypeOf 方法返回 true,否则返回 false。\n12345678910var handler = &#123;  setPrototypeOf(target, proto) &#123;    throw new Error(\"Changing the prototype is forbidden\");  &#125;,&#125;;var proto = &#123;&#125;;var target = function () &#123;&#125;;var proxy = new Proxy(target, handler);Object.setPrototypeOf(proxy, proto);// Error: Changing the prototype is forbidden\n\n上面代码中，只要修改 target 的原型对象，就会报错。\n注意，如果目标对象不可扩展（non-extensible），setPrototypeOf()方法不得改变目标对象的原型。\n3、Object.defineProperty 和 Proxy 的区别最主要的区别其实是应用到 Vue 的双向数据绑定中，其实也有由于 Vue 的双向数据绑定，才让这两个方法越来越多的进入到人们的视野中。\n在此我们不深入讲解双向数据绑定，所以分别用这两个方法实现个简单版的双向数据绑定，来看看两者之间的区别。\n3.1、Object.defineProperty 版12345678910111213141516const obj = &#123;&#125;;Object.defineProperty(obj, \"text\", &#123;  get: function () &#123;    console.log(\"get val\");  &#125;,  set: function (newVal) &#123;    console.log(\"set val:\" + newVal);    document.getElementById(\"input\").value = newVal;    document.getElementById(\"span\").innerHTML = newVal;  &#125;,&#125;);const input = document.getElementById(\"input\");input.addEventListener(\"keyup\", function (e) &#123;  obj.text = e.target.value;&#125;);\n\n可以看出来这个简单版的透露出 Object.defineProperty 一个很明显的缺点，就是只能对对象的一个属性进行监听，如果想要对对象的所有属性监听的话，就要去遍历，并且还有一个问题就是无法去监听数组，但是还是有优点的，优点就是兼容性好，这也是为什么 Vue2.0 优先选择了 Object.defineProperty 的原因。\n3.2、Proxy 版12345678910111213141516171819202122const input = document.getElementById(\"input\");const p = document.getElementById(\"p\");const obj = &#123;&#125;;const newObj = new Proxy(obj, &#123;  get: function (target, key, receiver) &#123;    console.log(`getting $&#123;key&#125;!`);    return Reflect.get(target, key, receiver);  &#125;,  set: function (target, key, value, receiver) &#123;    console.log(target, key, value, receiver);    if (key === \"text\") &#123;      input.value = value;      p.innerHTML = value;    &#125;    return Reflect.set(target, key, value, receiver);  &#125;,&#125;);input.addEventListener(\"keyup\", function (e) &#123;  newObj.text = e.target.value;&#125;);\n\n从上述可以看出 Proxy 可以对整个对象进行拦截，并且其能返回一个新的对象，除此之外其能对数组进行拦截。而且最直观的就是其有 13 个拦截方式。但是其最致命的问题就是兼容性不好，而且无法用 polyfill 磨平,因此尤大大才声明需要等到下个大版本(3.0)才能用 Proxy 重写。\n","dateCreated":"2020-08-04T23:18:10+08:00","dateModified":"2020-08-04T23:21:48+08:00","datePublished":"2020-08-04T23:18:10+08:00","description":"前言虽然我的主技术栈是 React 的，但是每当面试的时候，面试官几乎都会问你说一下 React 和 Vue 的区别，在说道双向数据绑定的时候，面试官会下意识的问一句，你说一下 Vue 的双向数据绑定的原理，这个时候 Object.defineProperty 就出场了，但是在 Vue3.0 中，Proxy 取代了 Object.defineProperty，成为双向绑定的底层原理，这个时候 Proxy 就显得尤为重要。\n本篇文章先以 Object.defineProperty 作为引入，之后讲解 Proxy，最后比较两者之间的优劣。","headline":"Proxy和defineProperty","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="前言虽然我的主技术栈是 React 的，但是每当面试的时候，面试官几乎都会问你说一下 React 和 Vue 的区别，在说道双向数据绑定的时候，面试官会下意识的问一句，你说一下 Vue 的双向数据绑定的原理，这个时候 Object.defineProperty 就出场了，但是在 Vue3.0 中，Proxy 取代了 Object.defineProperty，成为双向绑定的底层原理，这个时候 Pr">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Proxy和defineProperty">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/index.html">
+<meta property="og:site_name" content="Tomato&#39;s blog">
+<meta property="og:description" content="前言虽然我的主技术栈是 React 的，但是每当面试的时候，面试官几乎都会问你说一下 React 和 Vue 的区别，在说道双向数据绑定的时候，面试官会下意识的问一句，你说一下 Vue 的双向数据绑定的原理，这个时候 Object.defineProperty 就出场了，但是在 Vue3.0 中，Proxy 取代了 Object.defineProperty，成为双向绑定的底层原理，这个时候 Pr">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-08-04T15:18:10.000Z">
+<meta property="article:modified_time" content="2020-08-04T15:21:48.869Z">
+<meta property="article:author" content="TomatoMan">
+<meta property="article:tag" content="ES6">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Proxy和defineProperty
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-08-04T23:18:10+08:00">
+	
+		    8月 04, 2020
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/ES6/">ES6</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>虽然我的主技术栈是 React 的，但是每当面试的时候，面试官几乎都会问你说一下 React 和 Vue 的区别，在说道双向数据绑定的时候，面试官会下意识的问一句，你说一下 Vue 的双向数据绑定的原理，这个时候 Object.defineProperty 就出场了，但是在 Vue3.0 中，Proxy 取代了 Object.defineProperty，成为双向绑定的底层原理，这个时候 Proxy 就显得尤为重要。</p>
+<p>本篇文章先以 Object.defineProperty 作为引入，之后讲解 Proxy，最后比较两者之间的优劣。</p>
+<a id="more"></a>
+
+<h2 id="1、Object-defineProperty-数据劫持"><a href="#1、Object-defineProperty-数据劫持" class="headerlink" title="1、Object.defineProperty 数据劫持"></a>1、Object.defineProperty 数据劫持</h2><p>Object.defineProperty() 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。</p>
+<p>该方法接受三个参数，第一个参数是 obj：要定义属性的对象，第二个参数是 prop：要定义或修改的属性的名称或 Symbol，第三个参数是 descriptor：要定义或修改的属性描述符。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property"</span>, &#123;</span><br><span class="line">  value: <span class="number">18</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="built_in">console</span>.log(obj.property); <span class="comment">// 18</span></span><br></pre></td></tr></table></figure>
+
+<p>虽然我们可以直接添加属性和值，但是使用这种方式，我们能进行更多的配置。</p>
+<p>函数的第三个参数 descriptor 所表示的属性描述符有两种形式：数据描述符和存取描述符。数据描述符是一个具有值的属性，该值可以是可写的，也可以是不可写的。存取描述符是由 getter 函数和 setter 函数所描述的属性。一个描述符只能是这两者其中之一；不能同时是两者。</p>
+<p>这两种同时拥有下列两种键值：</p>
+<ol>
+<li>configurable：当且仅当该属性的 configurable 键值为 true 时，该属性的描述符才能够被改变，同时该属性也能从对应的对象上被删除。默认为 false。</li>
+<li>enumerable：当且仅当该属性的 enumerable 键值为 true 时，该属性才会出现在对象的枚举属性中。默认为 false。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123; <span class="attr">property</span>: <span class="number">24</span> &#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property"</span>, &#123;</span><br><span class="line">  configurable: <span class="literal">true</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">delete</span> obj[<span class="string">"property"</span>]; <span class="comment">// true</span></span><br><span class="line">obj; <span class="comment">// &#123;&#125;</span></span><br><span class="line"><span class="comment">// 改变状态</span></span><br><span class="line"><span class="keyword">const</span> obj = &#123; <span class="attr">property</span>: <span class="number">24</span> &#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property"</span>, &#123;</span><br><span class="line">  configurable: <span class="literal">false</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">delete</span> obj[<span class="string">"property"</span>]; <span class="comment">// false</span></span><br><span class="line">obj; <span class="comment">// &#123;'property': 24&#125;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;</span><br><span class="line">  property1: <span class="number">24</span>,</span><br><span class="line">  property2: <span class="number">34</span>,</span><br><span class="line">  property3: <span class="number">54</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property1"</span>, &#123;</span><br><span class="line">  enumerable: <span class="literal">true</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">for</span> (i <span class="keyword">in</span> obj) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(i);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// property1</span></span><br><span class="line"><span class="comment">// property2</span></span><br><span class="line"><span class="comment">// property3</span></span><br><span class="line"><span class="comment">// 改状态</span></span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property1"</span>, &#123;</span><br><span class="line">  enumerable: <span class="literal">false</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">for</span> (i <span class="keyword">in</span> obj) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(i);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// property2</span></span><br><span class="line"><span class="comment">// property3</span></span><br></pre></td></tr></table></figure>
+
+<p>数据描述符还具有以下可选键值：</p>
+<ol>
+<li>value：该属性对应的值。可以是任何有效的 JavaScript 值（数值，对象，函数等）。默认为 undefined。</li>
+<li>writable：当且仅当该属性的 writable 键值为 true 时，属性的值，也就是上面的 value，才能被赋值运算符改变。默认为 false。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property1"</span>, &#123;</span><br><span class="line">  value: <span class="number">18</span>,</span><br><span class="line">&#125;);</span><br><span class="line">obj; <span class="comment">// &#123;'property1': 18&#125;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property1"</span>, &#123;</span><br><span class="line">  value: <span class="number">18</span>,</span><br><span class="line">  writable: <span class="literal">false</span>,</span><br><span class="line">&#125;);</span><br><span class="line">obj.property1 = <span class="number">24</span>;</span><br><span class="line">obj; <span class="comment">// &#123;'property1': 18&#125;</span></span><br><span class="line"><span class="comment">// 改变状态</span></span><br><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property1"</span>, &#123;</span><br><span class="line">  value: <span class="number">18</span>,</span><br><span class="line">  writable: <span class="literal">true</span>,</span><br><span class="line">&#125;);</span><br><span class="line">obj.property1 = <span class="number">24</span>;</span><br><span class="line">obj; <span class="comment">// &#123;'property1': 24&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>存取描述符还具有以下可选键值：</p>
+<ol>
+<li>get：属性的 getter 函数，如果没有 getter，则为 undefined。当访问该属性时，会调用此函数。执行时不传入任何参数，但是会传入 this 对象（由于继承关系，这里的 this 并不一定是定义该属性的对象）。该函数的返回值会被用作属性的值。默认为 undefined。</li>
+<li>set：属性的 setter 函数，如果没有 setter，则为 undefined。当属性值被修改时，会调用此函数。该方法接受一个参数（也就是被赋予的新值），会传入赋值时的 this 对象。默认为 undefined。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"property1"</span>, &#123;</span><br><span class="line">  <span class="keyword">get</span>(value) &#123;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="keyword">set</span>(newValue) &#123;</span><br><span class="line">    value = newValue;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h2 id="2、Proxy-数据拦截"><a href="#2、Proxy-数据拦截" class="headerlink" title="2、Proxy 数据拦截"></a>2、Proxy 数据拦截</h2><p>Object.defineProperty 只能重定义获取和设置的行为，而 Proxy 相当于一个升级，它重定义了更多的行为，接下来我们对其进行深入讲解。</p>
+<p>首先，Proxy 是一个构造函数，可以通过 new 来创建它的实例，其接受两个参数，一个是 target：要使用 Proxy 包装的目标对象（可以是任何类型的对象，包括原生数组，函数，甚至另一个代理）。另外一个是 handler：一个通常以函数作为属性的对象，各属性中的函数分别定义了在执行各种操作时代理实例的行为。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(target, handler);</span><br></pre></td></tr></table></figure>
+
+<h3 id="handler-对象的方法"><a href="#handler-对象的方法" class="headerlink" title="handler 对象的方法"></a>handler 对象的方法</h3><p>handler 中的所有方法都是可选的，如果没有定义哪个方法，那就保留原对象的默认行为。</p>
+<h4 id="1、get"><a href="#1、get" class="headerlink" title="1、get()"></a>1、get()</h4><p>用于拦截对象的读取操作。该方法接收三个参数，target：目标对象，property：被获取的属性名，receiver：Proxy 或者继承 Proxy 的对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"Jack"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(person, &#123;</span><br><span class="line">  <span class="keyword">get</span>(target, property) &#123;</span><br><span class="line">    <span class="keyword">if</span> (property <span class="keyword">in</span> target) &#123;</span><br><span class="line">      <span class="keyword">return</span> target[property];</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="built_in">Error</span>(<span class="string">"不存在该属性"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">p.name; <span class="comment">// Jack</span></span><br><span class="line">p.age; <span class="comment">// Uncaught Error: 不存在该属性</span></span><br></pre></td></tr></table></figure>
+
+<p>查看第三个属性</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"Jack"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(person, &#123;</span><br><span class="line">  <span class="keyword">get</span>(target, property, receiver) &#123;</span><br><span class="line">    <span class="keyword">return</span> receiver;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">p.name === p; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，p 对象的 name 属性是由 p 对象提供的，所以 receiver 指向 proxy 对象。</p>
+<h4 id="2、set"><a href="#2、set" class="headerlink" title="2、set()"></a>2、set()</h4><p>用于设置属性值操作的捕获器。该方法接收四个参数，target：目标对象，property：将被设置的属性名或 Symbol，value：新属性值，receiver：最初被调用的对象。通常是 proxy 本身，但 handler 的 set 方法也有可能在原型链上，或以其他方式被间接地调用（因此不一定是 proxy 本身）。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(person, &#123;</span><br><span class="line">  <span class="keyword">set</span>(target, property, value, receiver) &#123;</span><br><span class="line">    target[property] = value;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">p.name = <span class="number">2</span>;</span><br></pre></td></tr></table></figure>
+
+<p>当给 Proxy 的实例添加属性的时候，就会调用 set()方法。</p>
+<p>下面我们来看一下 set()方法的第四个参数，一般情况下都是指向 proxy 本身。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(person, &#123;</span><br><span class="line">  <span class="keyword">set</span>(target, property, value, receiver) &#123;</span><br><span class="line">    target[property] = receiver;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">p.name = <span class="number">2</span>;</span><br><span class="line">p.name === p; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>但是也有其他情况，我们借用<a href="https://es6.ruanyifeng.com/#docs/proxy" target="_blank" rel="noopener">阮一峰：ECMAScript 6 入门-Proxy</a>中谈到的例子：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> handler = &#123;</span><br><span class="line">  <span class="keyword">set</span>: function (obj, prop, value, receiver) &#123;</span><br><span class="line">    obj[prop] = receiver;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">const</span> proxy = <span class="keyword">new</span> <span class="built_in">Proxy</span>(&#123;&#125;, handler);</span><br><span class="line"><span class="keyword">const</span> myObj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.setPrototypeOf(myObj, proxy);</span><br><span class="line"></span><br><span class="line">myObj.foo = <span class="string">"bar"</span>;</span><br><span class="line">myObj.foo === myObj; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，设置 myObj.foo 属性的值时，myObj 并没有 foo 属性，因此引擎会到 myObj 的原型链去找 foo 属性。myObj 的原型对象 proxy 是一个 Proxy 实例，设置它的 foo 属性会触发 set 方法。这时，第四个参数 receiver 就指向原始赋值行为所在的对象 myObj。</p>
+<p>值得注意一点的是，当该对象不可配置不可编写的时候，那么 set()方法将不起作用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"foo"</span>, &#123;</span><br><span class="line">  value: <span class="number">18</span>,</span><br><span class="line">  writable: <span class="literal">false</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(obj, &#123;</span><br><span class="line">  <span class="keyword">set</span>(target, property, value, receiver) &#123;</span><br><span class="line">    target[property] = value;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">p.foo = <span class="number">28</span>;</span><br><span class="line">p.foo; <span class="comment">// 18</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="3、apply"><a href="#3、apply" class="headerlink" title="3、apply()"></a>3、apply()</h4><p>用于拦截函数的调用。该方法接受三个参数，target：目标对象（函数）。thisArg：被调用时的上下文对象。argumentsList：被调用时的参数数组。</p>
+<p>当 Prxoy 的实例当做函数使用时，就会执行该方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;&#125;, &#123;</span><br><span class="line">  apply(target, thisArg, argumentsList) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"Hello Word"</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line">p(); <span class="comment">// Hello Word</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4、has"><a href="#4、has" class="headerlink" title="4、has()"></a>4、has()</h4><p>是针对 in 操作符的代理方法。该方法接受两个参数，target：目标对象。prop：需要检查是否存在的属性。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    has(target, prop) &#123;</span><br><span class="line">      <span class="built_in">console</span>.log(target, prop); <span class="comment">// &#123;&#125; 'a'</span></span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"><span class="built_in">console</span>.log(<span class="string">"a"</span> <span class="keyword">in</span> p); <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<p>has()方法只对 in 运算符有效，对 for…in…运算没有实际作用。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123; <span class="attr">value</span>: <span class="number">18</span> &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    has(target, prop) &#123;</span><br><span class="line">      <span class="keyword">if</span> (prop === <span class="string">"value"</span> &amp;&amp; target[prop] &lt; <span class="number">20</span>) &#123;</span><br><span class="line">        <span class="built_in">console</span>.log(<span class="string">"数值小于20"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> prop <span class="keyword">in</span> target;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"><span class="string">"value"</span> <span class="keyword">in</span> p; <span class="comment">// 数值小于20 false</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> a <span class="keyword">in</span> p) &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(p[a]); <span class="comment">// 18</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上述例子可以看出，has 方法拦截只对 in 运算符有效，对 for…in…来说没有拦截效果。</p>
+<h4 id="5、construct"><a href="#5、construct" class="headerlink" title="5、construct"></a>5、construct</h4><p>用于拦截 new 操作符. 为了使 new 操作符在生成的 Proxy 对象上生效，用于初始化代理的目标对象自身必须具有[[Construct]]内部方法（即 new target 必须是有效的）。该方法接收三个参数，target：目标对象。argumentsList：constructor 的参数列表。newTarget：最初被调用的构造函数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;&#125;, &#123;</span><br><span class="line">  construct(target, argumentsList, newTarget) &#123;</span><br><span class="line">    <span class="keyword">return</span> &#123; <span class="attr">value</span>: argumentsList[<span class="number">0</span>] &#125;;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;)(<span class="keyword">new</span> p(<span class="number">1</span>)).value; <span class="comment">// 1</span></span><br></pre></td></tr></table></figure>
+
+<p>construct()方法必须返回一个对象，不然不报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;&#125;, &#123;</span><br><span class="line">  construct(target, argumentsList, newTarget) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"Hello Word"</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">new</span> p(); <span class="comment">// Uncaught TypeError: 'construct' on proxy: trap returned non-object ('undefined')</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="6、deleteProperty"><a href="#6、deleteProperty" class="headerlink" title="6、deleteProperty"></a>6、deleteProperty</h4><p>用于拦截对对象属性的 delete 操作。该方法接受两个参数。target：目标对象。property：待删除的属性名。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    deleteProperty(target, property) &#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">"called: "</span> + property);</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"><span class="keyword">delete</span> p.a; <span class="comment">// "called: a"</span></span><br></pre></td></tr></table></figure>
+
+<p>如果这个方法抛出错误或者返回 false，当前属性就无法被 delete 命令删除。注意，目标对象自身的不可配置（configurable）的属性，不能被 deleteProperty 方法删除，否则报错。</p>
+<h4 id="7、defineProperty"><a href="#7、defineProperty" class="headerlink" title="7、defineProperty()"></a>7、defineProperty()</h4><p>用于拦截对对象的 Object.defineProperty() 操作。该方法接受三个参数，target：目标对象。property：待检索其描述的属性名。descriptor：待定义或修改的属性的描述符。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    defineProperty: <span class="function"><span class="keyword">function</span> (<span class="params">target, prop, descriptor</span>) </span>&#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">"called: "</span> + prop);</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> desc = &#123; <span class="attr">configurable</span>: <span class="literal">true</span>, <span class="attr">enumerable</span>: <span class="literal">true</span>, <span class="attr">value</span>: <span class="number">10</span> &#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(p, <span class="string">"a"</span>, desc); <span class="comment">// "called: a"</span></span><br></pre></td></tr></table></figure>
+
+<p>如果 defineProperty()方法内部没有任何操作，只返回 false，导致添加新属性总是无效。注意，这里的 false 只是用来提示操作失败，本身并不能阻止添加新属性。</p>
+<p>注意，如果目标对象不可扩展（non-extensible），则 defineProperty()不能增加目标对象上不存在的属性，否则会报错。另外，如果目标对象的某个属性不可写（writable）或不可配置（configurable），则 defineProperty()方法不得改变这两个设置。</p>
+<h4 id="8、defineProperty"><a href="#8、defineProperty" class="headerlink" title="8、defineProperty()"></a>8、defineProperty()</h4><p>用法是拦截 Object.getOwnPropertyDescriptor()，必须返回一个 object 或 undefined。该方法接受两个参数，target：目标对象。prop：返回属性名称的描述。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123; <span class="attr">a</span>: <span class="number">20</span> &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    getOwnPropertyDescriptor: <span class="function"><span class="keyword">function</span> (<span class="params">target, prop</span>) </span>&#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">"called: "</span> + prop);</span><br><span class="line">      <span class="keyword">return</span> &#123; <span class="attr">configurable</span>: <span class="literal">true</span>, <span class="attr">enumerable</span>: <span class="literal">true</span>, <span class="attr">value</span>: <span class="number">10</span> &#125;;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.getOwnPropertyDescriptor(p, <span class="string">"a"</span>).value); <span class="comment">// "called: a"</span></span><br><span class="line"><span class="comment">// 10</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="9、getPrototypeOf"><a href="#9、getPrototypeOf" class="headerlink" title="9、getPrototypeOf()"></a>9、getPrototypeOf()</h4><p>是一个代理（Proxy）方法，当读取代理对象的原型时，该方法就会被调用。该方法只接受一个参数，target：被代理的目标对象。返回值必须是一个对象或者 null。<br>触发该方法的条件总共有 5 种：</p>
+<ol>
+<li>Object.getPrototypeOf()</li>
+<li>Reflect.getPrototypeOf()</li>
+<li>__proto__</li>
+<li>Object.prototype.isPrototypeOf()</li>
+<li>instanceof</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> proto = &#123;&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    getPrototypeOf(target) &#123;</span><br><span class="line">      <span class="keyword">return</span> proto;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"><span class="built_in">Object</span>.getPrototypeOf(p) === proto; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="10、isExtensible"><a href="#10、isExtensible" class="headerlink" title="10、isExtensible()"></a>10、isExtensible()</h4><p>用于拦截对对象的 Object.isExtensible()。该方法接受一个参数。target：目标对象。返回值必须返回一个 Boolean 值或可转换成 Boolean 的值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    isExtensible: <span class="function"><span class="keyword">function</span> (<span class="params">target</span>) </span>&#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">"called"</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.isExtensible(p)); <span class="comment">// "called"</span></span><br><span class="line"><span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<p>注意，该方法有一个强制的约束，即 Object.isExtensible(proxy) 必须同 Object.isExtensible(target)返回相同值。也就是必须返回 true 或者为 true 的值,返回 false 和为 false 的值都会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    isExtensible: <span class="function"><span class="keyword">function</span> (<span class="params">target</span>) </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="built_in">Object</span>.isExtensible(p); <span class="comment">// Uncaught TypeError: 'isExtensible' on proxy: trap result does not reflect extensibility of proxy target (which is 'true')</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="11、ownKeys"><a href="#11、ownKeys" class="headerlink" title="11、ownKeys()"></a>11、ownKeys()</h4><p>用来拦截对象自身属性的读取操作。该方法接受一个参数，target：目标对象。</p>
+<p>具体拦截如下：</p>
+<ol>
+<li>Object.getOwnPropertyNames()</li>
+<li>Object.getOwnPropertySymbols()</li>
+<li>Object.keys()</li>
+<li>for…in 循环</li>
+</ol>
+<p>该方法有几个约束条件：</p>
+<ol>
+<li>ownKeys 的结果必须是一个数组</li>
+<li>数组的元素类型要么是一个 String ，要么是一个 Symbol</li>
+<li>结果列表必须包含目标对象的所有不可配置（non-configurable ）、自有（own）属性的 key</li>
+<li>如果目标对象不可扩展，那么结果列表必须包含目标对象的所有自有（own）属性的 key，不能有其它值</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> target = &#123;</span><br><span class="line">  a: <span class="number">1</span>,</span><br><span class="line">  b: <span class="number">2</span>,</span><br><span class="line">  c: <span class="number">3</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(target, &#123;</span><br><span class="line">  ownKeys(target) &#123;</span><br><span class="line">    <span class="keyword">return</span> [<span class="string">"a"</span>];</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="built_in">Object</span>.keys(p); <span class="comment">// ['a']</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="12、preventExtensions"><a href="#12、preventExtensions" class="headerlink" title="12、preventExtensions()"></a>12、preventExtensions()</h4><p>用于设置对 Object.preventExtensions()的拦截。该方法接受一个参数，target：所要拦截的目标对象。该方法返回一个布尔值。该方法有个限制，即如果目标对象是可扩展的，那么只能返回 false。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    preventExtensions: <span class="function"><span class="keyword">function</span> (<span class="params">target</span>) </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="built_in">Object</span>.preventExtensions(p); <span class="comment">// Uncaught TypeError: 'preventExtensions' on proxy: trap returned truish but the proxy target is extensible</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，proxy.preventExtensions()方法返回 true，但这时 Object.isExtensible(proxy)会返回 true，因此报错。</p>
+<p>为了防止出现这个问题，通常要在 proxy.preventExtensions()方法里面，调用一次 Object.preventExtensions()。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="keyword">new</span> <span class="built_in">Proxy</span>(</span><br><span class="line">  &#123;&#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    preventExtensions: <span class="function"><span class="keyword">function</span> (<span class="params">target</span>) </span>&#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">"called"</span>);</span><br><span class="line">      <span class="built_in">Object</span>.preventExtensions(target);</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="built_in">console</span>.log(<span class="built_in">Object</span>.preventExtensions(p)); <span class="comment">// "called"</span></span><br><span class="line"><span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="13、setPrototypeOf"><a href="#13、setPrototypeOf" class="headerlink" title="13、setPrototypeOf()"></a>13、setPrototypeOf()</h4><p>用来拦截 Object.setPrototypeOf()。该方法接受两个参数，target：被拦截目标对象。prototype：对象新原型或为 null。如果成功修改了[[Prototype]], setPrototypeOf 方法返回 true,否则返回 false。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> handler = &#123;</span><br><span class="line">  setPrototypeOf(target, proto) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Changing the prototype is forbidden"</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">var</span> proto = &#123;&#125;;</span><br><span class="line"><span class="keyword">var</span> target = <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;&#125;;</span><br><span class="line"><span class="keyword">var</span> proxy = <span class="keyword">new</span> <span class="built_in">Proxy</span>(target, handler);</span><br><span class="line"><span class="built_in">Object</span>.setPrototypeOf(proxy, proto);</span><br><span class="line"><span class="comment">// Error: Changing the prototype is forbidden</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，只要修改 target 的原型对象，就会报错。</p>
+<p>注意，如果目标对象不可扩展（non-extensible），setPrototypeOf()方法不得改变目标对象的原型。</p>
+<h2 id="3、Object-defineProperty-和-Proxy-的区别"><a href="#3、Object-defineProperty-和-Proxy-的区别" class="headerlink" title="3、Object.defineProperty 和 Proxy 的区别"></a>3、Object.defineProperty 和 Proxy 的区别</h2><p>最主要的区别其实是应用到 Vue 的双向数据绑定中，其实也有由于 Vue 的双向数据绑定，才让这两个方法越来越多的进入到人们的视野中。</p>
+<p>在此我们不深入讲解双向数据绑定，所以分别用这两个方法实现个简单版的双向数据绑定，来看看两者之间的区别。</p>
+<h4 id="3-1、Object-defineProperty-版"><a href="#3-1、Object-defineProperty-版" class="headerlink" title="3.1、Object.defineProperty 版"></a>3.1、Object.defineProperty 版</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(obj, <span class="string">"text"</span>, &#123;</span><br><span class="line">  <span class="keyword">get</span>: function () &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"get val"</span>);</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="keyword">set</span>: function (newVal) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"set val:"</span> + newVal);</span><br><span class="line">    <span class="built_in">document</span>.getElementById(<span class="string">"input"</span>).value = newVal;</span><br><span class="line">    <span class="built_in">document</span>.getElementById(<span class="string">"span"</span>).innerHTML = newVal;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> input = <span class="built_in">document</span>.getElementById(<span class="string">"input"</span>);</span><br><span class="line">input.addEventListener(<span class="string">"keyup"</span>, <span class="function"><span class="keyword">function</span> (<span class="params">e</span>) </span>&#123;</span><br><span class="line">  obj.text = e.target.value;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>可以看出来这个简单版的透露出 Object.defineProperty 一个很明显的缺点，就是只能对对象的一个属性进行监听，如果想要对对象的所有属性监听的话，就要去遍历，并且还有一个问题就是无法去监听数组，但是还是有优点的，优点就是兼容性好，这也是为什么 Vue2.0 优先选择了 Object.defineProperty 的原因。</p>
+<h4 id="3-2、Proxy-版"><a href="#3-2、Proxy-版" class="headerlink" title="3.2、Proxy 版"></a>3.2、Proxy 版</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> input = <span class="built_in">document</span>.getElementById(<span class="string">"input"</span>);</span><br><span class="line"><span class="keyword">const</span> p = <span class="built_in">document</span>.getElementById(<span class="string">"p"</span>);</span><br><span class="line"><span class="keyword">const</span> obj = &#123;&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> newObj = <span class="keyword">new</span> <span class="built_in">Proxy</span>(obj, &#123;</span><br><span class="line">  <span class="keyword">get</span>: function (target, key, receiver) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">`getting <span class="subst">$&#123;key&#125;</span>!`</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Reflect</span>.get(target, key, receiver);</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="keyword">set</span>: function (target, key, value, receiver) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(target, key, value, receiver);</span><br><span class="line">    <span class="keyword">if</span> (key === <span class="string">"text"</span>) &#123;</span><br><span class="line">      input.value = value;</span><br><span class="line">      p.innerHTML = value;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Reflect</span>.set(target, key, value, receiver);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">input.addEventListener(<span class="string">"keyup"</span>, <span class="function"><span class="keyword">function</span> (<span class="params">e</span>) </span>&#123;</span><br><span class="line">  newObj.text = e.target.value;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>从上述可以看出 Proxy 可以对整个对象进行拦截，并且其能返回一个新的对象，除此之外其能对数组进行拦截。而且最直观的就是其有 13 个拦截方式。但是其最致命的问题就是兼容性不好，而且无法用 polyfill 磨平,因此尤大大才声明需要等到下个大版本(3.0)才能用 Proxy 重写。</p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/08/04/Reflect/"
+                    data-tooltip="Reflect"
+                    aria-label="上一篇: Reflect"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/27/export/"
+                    data-tooltip="export"
+                    aria-label="下一篇: export"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Share this post"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Back to top">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/08/04/Reflect/"
+                    data-tooltip="Reflect"
+                    aria-label="上一篇: Reflect"
+                >
+                    
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/07/27/export/"
+                    data-tooltip="export"
+                    aria-label="下一篇: export"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Share this post"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Back to top">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+            <div id="algolia-search-modal" class="modal-container">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="close-button"><i class="fa fa-times"></i></span>
+            <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+                <span class="searchby-algolia-text text-color-light text-small">by</span>
+                <img class="searchby-algolia-logo" src="/assets/images/logo-algolia-nebula-blue-full.svg">
+            </a>
+            <i class="search-icon fa fa-search"></i>
+            <form id="algolia-search-form">
+                <input type="text" id="algolia-search-input" name="search"
+                    class="form-control input--large search-input" placeholder="Search "
+                    />
+            </form>
+        </div>
+        <div class="modal-body">
+            <div class="no-result text-color-light text-center">没有找到文章</div>
+            <div class="results">
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <h3 class="media-heading">js基础类型和引用类型</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月8日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <h3 class="media-heading">类型转换</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <h3 class="media-heading">深拷贝和浅拷贝</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>这属于面试的高频问题了，深浅拷贝的问题只针对于引用数据类型，对于基本数据类型并没有这样的问题。<br>为什么引用数据类型会出现这样的问题？<br>第一篇 js 数据类型中有提到，引用数据类型存放在堆中，栈中存放的是该引用类型的地址，以便能通过地址快速找到该引用数据。<br>所以在拷贝时就会出现只拷贝引用类型的地址和再在堆中开辟一个新的内存空间的两种拷贝方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <h3 class="media-heading">原型与原型链</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <h3 class="media-heading">继承</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <h3 class="media-heading">new关键词</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月21日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>大部分面试的时候，面试官先已原型链铺路，随后就会问你 new 关键词都做了些什么？也是为了下一个继承问题再次铺路！<br>那这篇文章我们就来讲讲这个 new！<br>我们通常在什么地方能看到它，在创建实例的时候，new 后面加上一个构造函数，就是创建这个构造函数的实例。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <h3 class="media-heading">作用域</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>何为作用域，查找度娘百科中是这么定义的：</p>
+<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <h3 class="media-heading">执行上下文</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <h3 class="media-heading">闭包</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月12日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <h3 class="media-heading">call、apply和bind</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月18日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>call、apply 和 bind 都是对 this 值得改变，那三者有什么不同呢？本篇通过模拟三者代码的形式来讲解。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="results-count text-medium"
+                data-message-zero="没有找到文章"
+                data-message-one="找到 1 篇文章"
+                data-message-other="找到 {n} 篇文章">
+                找到 19 篇文章
+            </p>
+        </div>
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+    
+<script src="/assets/js/moment-with-locales.js"></script>
+
+    
+<script src="/assets/js/algoliasearch.js"></script>
+
+    <script>
+      var algoliaClient = algoliasearch('2ILBT3HBZ2', '2f34a1f86e95da45573cd221c686a072');
+      var algoliaIndex = algoliaClient.initIndex('my-hexo-blog');
+    </script>
+
+
+    </body>
+</html>

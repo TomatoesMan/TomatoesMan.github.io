@@ -1,0 +1,1017 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Tomato&#39;s blog">
+    <title>Reflect - Tomato&#39;s blog</title>
+    <meta name="author" content="TomatoMan">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg"},"articleBody":"前言其实说实在的，在没重学 ES6 之前，我对 Reflect 这个对象完全是空白的，一是在实际工作中用不到，二是面试的时候也没人问起。这也是自己的一个问题，在驱动式学习，而没有去自主学习。\n那今天就讲讲 Reflect 对象。\n\n\n1、概述Reflect 对象不是构造函数，所以创建时不是用 new 来进行创建。\n在 ES6 中增加这个对象的目的：\n\n将 Object 对象的一些明显属于语言内部的方法（比如 Object.defineProperty），放到 Reflect 对象上。现阶段，某些方法同时在 Object 和 Reflect 对象上部署，未来的新方法将只部署在 Reflect 对象上。也就是说，从 Reflect 对象上可以拿到语言内部的方法。\n修改某些 Object 方法的返回结果，让其变得更合理。比如，Object.defineProperty(obj, name, desc)在无法定义属性时，会抛出一个错误，而 Reflect.defineProperty(obj, name, desc)则会返回 false。\n让 Object 操作都变成函数行为。某些 Object 操作是命令式，比如 name in obj 和 delete obj[name]，而 Reflect.has(obj, name)和 Reflect.deleteProperty(obj, name)让它们变成了函数行为。\nReflect 对象的方法与 Proxy 对象的方法一一对应，只要是 Proxy 对象的方法，就能在 Reflect 对象上找到对应的方法。这就让 Proxy 对象可以方便地调用对应的 Reflect 方法，完成默认行为，作为修改行为的基础。也就是说，不管 Proxy 怎么修改默认行为，你总可以在 Reflect 上获取默认行为。\n\n1234567891011121314var loggedObj = new Proxy(obj, &#123;  get(target, name) &#123;    console.log(\"get\", target, name);    return Reflect.get(target, name);  &#125;,  deleteProperty(target, name) &#123;    console.log(\"delete\" + name);    return Reflect.deleteProperty(target, name);  &#125;,  has(target, name) &#123;    console.log(\"has\" + name);    return Reflect.has(target, name);  &#125;,&#125;);\n\n上面代码中，每一个 Proxy 对象的拦截操作（get、delete、has），内部都调用对应的 Reflect 方法，保证原生行为能够正常执行。添加的工作，就是将每一个操作输出一行日志。\n2、静态 APIReflect 拥有 13 个静态 API，其大部分与 Object 对象的同名方法的作用都是相同的，而且它与 Proxy 对象的方法是一一对应的。\n2.1、Reflect.apply()通过指定的参数列表发起对目标(target)函数的调用。该方法接受是三个参数，target：目标函数。thisArgument：target 函数调用时绑定的 this 对象。argumentsList：target 函数调用时传入的实参列表，该参数应该是一个类数组的对象。\n该方法与 ES5 中 Function.prototype.apply()方法类似，Reflect.apply()可以让代码看起来更加的通俗易懂。\n12Function.prototype.apply.call(Math.floor, undefined, [1.75]);Reflect.apply(Math.floor, undefined, [1.75]);\n\n2.2、Reflect.construct()该方法的行为有点像 new 操作符 构造函数 ， 相当于运行 new target(…args)。该方法接受三个参数，target：被运行的目标构造函数。argumentsList：类数组，目标构造函数调用时的参数。newTarget（可选）：作为新创建对象的原型对象的 constructor 属性， 参考 new.target 操作符，默认值为 target。\n12345678class Person &#123;  constructor(name) &#123;    this.name = name;  &#125;&#125;let person = new Person(\"Jack\");// 等价于let person = Reflect.construct(Person, [\"Jack\"]);\n\n2.3、Reflect.defineProperty()基本等同于 Object.defineProperty() 方法，唯一不同是返回 Boolean 值。该方法接受三个参数，target：目标对象。propertyKey：要定义或修改的属性的名称。attributes：要定义或修改的属性的描述。\n12345678let obj = &#123;&#125;;Object.defineProperty(&#123;&#125;, \"value\", &#123;  value: \"18\",&#125;);// 等价于Reflect.defineProperty(&#123;&#125;, \"value\", &#123;  value: \"18\",&#125;);\n\n2.4、Reflect.deleteProperty()允许用于删除属性。它很像 delete operator ，但它是一个函数。该方法接受两个参数，target：删除属性的目标对象。propertyKey：需要删除的属性的名称。\n123456let obj = &#123;  value: \"18\",&#125;;delete obj[\"value\"];// 等价于Reflect.deleteProperty(obj, \"value\");\n\n2.5、Reflect.get()该方法与从 对象 (target[propertyKey]) 中读取属性类似，但它是通过一个函数执行来操作的。该方法接受三个参数，target：需要取值的目标对象。propertyKey：需要获取的值的键值。receiver：如果 target 对象中指定了 getter，receiver 则为 getter 调用时的 this 值。值得注意的是如果 target 不是对象的话，则会报错。\n12345678910111213141516let obj = &#123;  value: \"18\",&#125;;Reflect.get(obj, \"value\"); // 18// 当有getter函数时let obj = &#123;  value: \"18\",  get foo() &#123;    return this.a + this.b;  &#125;,&#125;;let foo = &#123;  a: 2,  b: 3,&#125;;Reflect.get(obj, \"foo\", foo); // 5\n\n2.6、Reflect.getOwnPropertyDescriptor()该方法与 Object.getOwnPropertyDescriptor() 方法相似。如果在对象中存在，则返回给定的属性的属性描述符。否则返回 undefined。该方法接受两个参数，target：需要寻找属性的目标对象。propertyKey：获取自己的属性描述符的属性的名称。值得注意的是如果 target 不是对象的话，会报错。\n12345678var myObject = &#123;&#125;;Object.defineProperty(myObject, \"hidden\", &#123;  value: true,  enumerable: false,&#125;);var theDescriptor = Object.getOwnPropertyDescriptor(myObject, \"hidden\");// 等价于var theDescriptor = Reflect.getOwnPropertyDescriptor(myObject, \"hidden\");\n\n2.7、Reflect.getPrototypeOf()该方法与 Object.getPrototypeOf() 方法几乎是一样的。都是返回指定对象的原型（即内部的 [[Prototype]] 属性的值）。该方法只能接受一个参数，target：获取原型的目标对象。注意得是如果 target 不是对象的话，会报错。\n12345class MyObj &#123;&#125;let myObj = new MyObj();Object.getPrototypeOf(myObj) === MyObj.prototype; // true// 等价于Reflect.getPrototypeOf(myObj) === MyObj.prototype; // true\n\n2.8、Reflect.has()作用与 in 操作符 相同。该方法接受两个参数，target：目标对象。propertyKey：属性名，需要检查目标对象是否存在此属性。注意，如果目标对象并非 Object 类型，则会报错。\n123456let obj = &#123;  value: \"18\",&#125;;\"value\" in obj; // true// 等价于Reflect.has(obj, \"value\"); // ture\n\n2.9、Reflect.isExtensible()判断一个对象是否可扩展 （即是否能够添加新的属性）。与它 Object.isExtensible() 方法相似，但有一些不同，如果该方法的第一个参数不是一个对象（原始值），那么将会报错。对于 Object.isExtensible()，非对象的第一个参数会被强制转换为一个对象。该方法只接受一个参数，target：检查是否可扩展的目标对象。\n1234let obj = &#123;&#125;;Object.isExtensible(obj); // true// 等价于Reflect.isExtensible(obj); // true\n\n2.10、Reflect.ownKeys()返回一个由目标对象自身的属性键组成的数组。该方法接受一个参数，target：获取自身属性键的目标对象。返回一个由目标对象的自身属性键组成的 Array。返回值等同于 Object.getOwnPropertyNames(target).concat(Object.getOwnPropertySymbols(target))。\n123456789101112let myObject = &#123;  foo: 1,  bar: 2,  [Symbol.for(\"baz\")]: 3,  [Symbol.for(\"bing\")]: 4,&#125;;Object.getOwnPropertyNames(myObject).concat(  Object.getOwnPropertySymbols(myObject));// 等价于Reflect.ownKeys(myObject); // ['foo', 'bar', Symbol(baz), Symbol(bing)]\n\n2.11、Reflect.preventExtensions()该方法阻止新属性添加到对象 (例如：防止将来对对象的扩展被添加到对象中)。该方法与 Object.preventExtensions()相似，但有一些不同点。该方法接受一个参数，target：阻止扩展的目标对象。\n1234let obj = &#123;&#125;;Object.preventExtensions(obj); // Object &#123;&#125;// 等价于Reflect.preventExtensions(obj); // true\n\n2.12、Reflect.set()该方法设置 target 对象的 name 属性等于 value。该方法接受四个参数，target：设置属性的目标对象。propertyKey：设置的属性的名称。value：设置的值。receiver：如果遇到 setter，receiver 则为 setter 调用时的 this 值。\n123456789101112131415161718let person = &#123;  name: \"Jack\",&#125;;person.name; // 'Jack'Reflect.set(person, \"name\", \"Luci\");person.name; // 'Luci'// 当有setter函数时let person = &#123;  name: \"Jack\",  set foo(value) &#123;    return (this.name = value);  &#125;,&#125;;let receiverObject = &#123;  name: \"Luci\",&#125;;Reflect.set(person, \"foo\", \"Jhon\", receiverObject);receiverObject.name; // Jhon\n\n2.13、Reflect.setPrototypeOf()该方法与 Object.setPrototypeOf() 方法是一样的。它可设置对象的原型（即内部的 [[Prototype]] 属性）为另一个对象或 null，如果操作成功返回 true，否则返回 false。该方法接受两个参数，target：设置原型的目标对象。prototype：对象的新原型（一个对象或 null）。如果 target 不是对象的话将会报错。\n12345const myObj = &#123;&#125;;Object.setPrototypeOf(myObj, Array.prototype);// 等价于Reflect.setPrototypeOf(myObj, Array.prototype);\n\n参考阮一峰：ECMAScript 6 入门——Reflect\n","dateCreated":"2020-08-04T23:20:16+08:00","dateModified":"2020-08-04T23:21:43+08:00","datePublished":"2020-08-04T23:20:16+08:00","description":"前言其实说实在的，在没重学 ES6 之前，我对 Reflect 这个对象完全是空白的，一是在实际工作中用不到，二是面试的时候也没人问起。这也是自己的一个问题，在驱动式学习，而没有去自主学习。\n那今天就讲讲 Reflect 对象。","headline":"Reflect","image":["https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://tomatoesman.github.io/2020/08/04/Reflect/"},"publisher":{"@type":"Organization","name":"TomatoMan","sameAs":["https://github.com/TomatoesMan/TomatoesMan.github.io"],"image":"author.jpg","logo":{"@type":"ImageObject","url":"author.jpg"}},"url":"https://tomatoesman.github.io/2020/08/04/Reflect/","keywords":"ES6","thumbnailUrl":"https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&fm=26&gp=0.jpg"}</script>
+    <meta name="description" content="前言其实说实在的，在没重学 ES6 之前，我对 Reflect 这个对象完全是空白的，一是在实际工作中用不到，二是面试的时候也没人问起。这也是自己的一个问题，在驱动式学习，而没有去自主学习。 那今天就讲讲 Reflect 对象。">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Reflect">
+<meta property="og:url" content="https://tomatoesman.github.io/2020/08/04/Reflect/index.html">
+<meta property="og:site_name" content="Tomato&#39;s blog">
+<meta property="og:description" content="前言其实说实在的，在没重学 ES6 之前，我对 Reflect 这个对象完全是空白的，一是在实际工作中用不到，二是面试的时候也没人问起。这也是自己的一个问题，在驱动式学习，而没有去自主学习。 那今天就讲讲 Reflect 对象。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-08-04T15:20:16.000Z">
+<meta property="article:modified_time" content="2020-08-04T15:21:43.804Z">
+<meta property="article:author" content="TomatoMan">
+<meta property="article:tag" content="ES6">
+<meta name="twitter:card" content="summary">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://TomatoesMan.github.io/assets/images/author.jpg"/>
+    
+    
+        <meta property="og:image" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3458433279,3917450975&amp;fm=26&amp;gp=0.jpg"/>
+    
+    
+    
+    <!--STYLES-->
+    
+<link rel="stylesheet" href="/assets/css/style-suodpugx9ofcga79nznih1fcbmzciq3ml6rzj9xp1ewhmlpff4ih6yfwkzie.min.css">
+
+    <!--STYLES END-->
+    
+
+    
+
+    
+        
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a
+            class="header-title-link"
+            href="/%20"
+            aria-label=""
+        >
+            Tomato&#39;s blog
+        </a>
+    </div>
+    
+        
+            <a
+                class="header-right-picture "
+                href="#about"
+                aria-label="打开链接: /#about"
+            >
+        
+        
+            <img class="header-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a
+                    href="/#about"
+                    aria-label="阅读有关作者的更多信息"
+                >
+                    <img class="sidebar-profile-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">TomatoMan</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>author.bio</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/"
+                            
+                            rel="noopener"
+                            title="首页"
+                        >
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/categories"
+                            
+                            rel="noopener"
+                            title="分类"
+                        >
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/tags"
+                            
+                            rel="noopener"
+                            title="标签"
+                        >
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="/all-archives"
+                            
+                            rel="noopener"
+                            title="归档"
+                        >
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link open-algolia-search"
+                            href="#search"
+                            
+                            rel="noopener"
+                            title="搜索"
+                        >
+                        <i class="sidebar-button-icon fa fa-search" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">搜索</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="#about"
+                            
+                            rel="noopener"
+                            title="关于"
+                        >
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a
+                            class="sidebar-button-link "
+                            href="https://github.com/TomatoesMan/TomatoesMan.github.io"
+                            
+                                target="_blank"
+                            
+                            rel="noopener"
+                            title="GitHub"
+                        >
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Reflect
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2020-08-04T23:20:16+08:00">
+	
+		    8月 04, 2020
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/ES6/">ES6</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>其实说实在的，在没重学 ES6 之前，我对 Reflect 这个对象完全是空白的，一是在实际工作中用不到，二是面试的时候也没人问起。这也是自己的一个问题，在驱动式学习，而没有去自主学习。</p>
+<p>那今天就讲讲 Reflect 对象。</p>
+<a id="more"></a>
+
+<h2 id="1、概述"><a href="#1、概述" class="headerlink" title="1、概述"></a>1、概述</h2><p>Reflect 对象不是构造函数，所以创建时不是用 new 来进行创建。</p>
+<p>在 ES6 中增加这个对象的目的：</p>
+<ol>
+<li>将 Object 对象的一些明显属于语言内部的方法（比如 Object.defineProperty），放到 Reflect 对象上。现阶段，某些方法同时在 Object 和 Reflect 对象上部署，未来的新方法将只部署在 Reflect 对象上。也就是说，从 Reflect 对象上可以拿到语言内部的方法。</li>
+<li>修改某些 Object 方法的返回结果，让其变得更合理。比如，Object.defineProperty(obj, name, desc)在无法定义属性时，会抛出一个错误，而 Reflect.defineProperty(obj, name, desc)则会返回 false。</li>
+<li>让 Object 操作都变成函数行为。某些 Object 操作是命令式，比如 name in obj 和 delete obj[name]，而 Reflect.has(obj, name)和 Reflect.deleteProperty(obj, name)让它们变成了函数行为。</li>
+<li>Reflect 对象的方法与 Proxy 对象的方法一一对应，只要是 Proxy 对象的方法，就能在 Reflect 对象上找到对应的方法。这就让 Proxy 对象可以方便地调用对应的 Reflect 方法，完成默认行为，作为修改行为的基础。也就是说，不管 Proxy 怎么修改默认行为，你总可以在 Reflect 上获取默认行为。</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> loggedObj = <span class="keyword">new</span> <span class="built_in">Proxy</span>(obj, &#123;</span><br><span class="line">  <span class="keyword">get</span>(target, name) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"get"</span>, target, name);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Reflect</span>.get(target, name);</span><br><span class="line">  &#125;,</span><br><span class="line">  deleteProperty(target, name) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"delete"</span> + name);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Reflect</span>.deleteProperty(target, name);</span><br><span class="line">  &#125;,</span><br><span class="line">  has(target, name) &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">"has"</span> + name);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Reflect</span>.has(target, name);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，每一个 Proxy 对象的拦截操作（get、delete、has），内部都调用对应的 Reflect 方法，保证原生行为能够正常执行。添加的工作，就是将每一个操作输出一行日志。</p>
+<h2 id="2、静态-API"><a href="#2、静态-API" class="headerlink" title="2、静态 API"></a>2、静态 API</h2><p>Reflect 拥有 13 个静态 API，其大部分与 Object 对象的同名方法的作用都是相同的，而且它与 Proxy 对象的方法是一一对应的。</p>
+<h3 id="2-1、Reflect-apply"><a href="#2-1、Reflect-apply" class="headerlink" title="2.1、Reflect.apply()"></a>2.1、Reflect.apply()</h3><p>通过指定的参数列表发起对目标(target)函数的调用。该方法接受是三个参数，target：目标函数。thisArgument：target 函数调用时绑定的 this 对象。argumentsList：target 函数调用时传入的实参列表，该参数应该是一个类数组的对象。</p>
+<p>该方法与 ES5 中 Function.prototype.apply()方法类似，Reflect.apply()可以让代码看起来更加的通俗易懂。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Function</span>.prototype.apply.call(<span class="built_in">Math</span>.floor, <span class="literal">undefined</span>, [<span class="number">1.75</span>]);</span><br><span class="line"><span class="built_in">Reflect</span>.apply(<span class="built_in">Math</span>.floor, <span class="literal">undefined</span>, [<span class="number">1.75</span>]);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2、Reflect-construct"><a href="#2-2、Reflect-construct" class="headerlink" title="2.2、Reflect.construct()"></a>2.2、Reflect.construct()</h3><p>该方法的行为有点像 new 操作符 构造函数 ， 相当于运行 new target(…args)。该方法接受三个参数，target：被运行的目标构造函数。argumentsList：类数组，目标构造函数调用时的参数。newTarget（可选）：作为新创建对象的原型对象的 constructor 属性， 参考 new.target 操作符，默认值为 target。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Person</span> </span>&#123;</span><br><span class="line">  <span class="keyword">constructor</span>(name) &#123;</span><br><span class="line">    <span class="keyword">this</span>.name = name;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">let</span> person = <span class="keyword">new</span> Person(<span class="string">"Jack"</span>);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="keyword">let</span> person = <span class="built_in">Reflect</span>.construct(Person, [<span class="string">"Jack"</span>]);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3、Reflect-defineProperty"><a href="#2-3、Reflect-defineProperty" class="headerlink" title="2.3、Reflect.defineProperty()"></a>2.3、Reflect.defineProperty()</h3><p>基本等同于 Object.defineProperty() 方法，唯一不同是返回 Boolean 值。该方法接受三个参数，target：目标对象。propertyKey：要定义或修改的属性的名称。attributes：要定义或修改的属性的描述。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(&#123;&#125;, <span class="string">"value"</span>, &#123;</span><br><span class="line">  value: <span class="string">"18"</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.defineProperty(&#123;&#125;, <span class="string">"value"</span>, &#123;</span><br><span class="line">  value: <span class="string">"18"</span>,</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4、Reflect-deleteProperty"><a href="#2-4、Reflect-deleteProperty" class="headerlink" title="2.4、Reflect.deleteProperty()"></a>2.4、Reflect.deleteProperty()</h3><p>允许用于删除属性。它很像 delete operator ，但它是一个函数。该方法接受两个参数，target：删除属性的目标对象。propertyKey：需要删除的属性的名称。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  value: <span class="string">"18"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">delete</span> obj[<span class="string">"value"</span>];</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.deleteProperty(obj, <span class="string">"value"</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-5、Reflect-get"><a href="#2-5、Reflect-get" class="headerlink" title="2.5、Reflect.get()"></a>2.5、Reflect.get()</h3><p>该方法与从 对象 (target[propertyKey]) 中读取属性类似，但它是通过一个函数执行来操作的。该方法接受三个参数，target：需要取值的目标对象。propertyKey：需要获取的值的键值。receiver：如果 target 对象中指定了 getter，receiver 则为 getter 调用时的 this 值。值得注意的是如果 target 不是对象的话，则会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  value: <span class="string">"18"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="built_in">Reflect</span>.get(obj, <span class="string">"value"</span>); <span class="comment">// 18</span></span><br><span class="line"><span class="comment">// 当有getter函数时</span></span><br><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  value: <span class="string">"18"</span>,</span><br><span class="line">  <span class="keyword">get</span> foo() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.a + <span class="keyword">this</span>.b;</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> foo = &#123;</span><br><span class="line">  a: <span class="number">2</span>,</span><br><span class="line">  b: <span class="number">3</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="built_in">Reflect</span>.get(obj, <span class="string">"foo"</span>, foo); <span class="comment">// 5</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-6、Reflect-getOwnPropertyDescriptor"><a href="#2-6、Reflect-getOwnPropertyDescriptor" class="headerlink" title="2.6、Reflect.getOwnPropertyDescriptor()"></a>2.6、Reflect.getOwnPropertyDescriptor()</h3><p>该方法与 Object.getOwnPropertyDescriptor() 方法相似。如果在对象中存在，则返回给定的属性的属性描述符。否则返回 undefined。该方法接受两个参数，target：需要寻找属性的目标对象。propertyKey：获取自己的属性描述符的属性的名称。值得注意的是如果 target 不是对象的话，会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> myObject = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.defineProperty(myObject, <span class="string">"hidden"</span>, &#123;</span><br><span class="line">  value: <span class="literal">true</span>,</span><br><span class="line">  enumerable: <span class="literal">false</span>,</span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">var</span> theDescriptor = <span class="built_in">Object</span>.getOwnPropertyDescriptor(myObject, <span class="string">"hidden"</span>);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="keyword">var</span> theDescriptor = <span class="built_in">Reflect</span>.getOwnPropertyDescriptor(myObject, <span class="string">"hidden"</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-7、Reflect-getPrototypeOf"><a href="#2-7、Reflect-getPrototypeOf" class="headerlink" title="2.7、Reflect.getPrototypeOf()"></a>2.7、Reflect.getPrototypeOf()</h3><p>该方法与 Object.getPrototypeOf() 方法几乎是一样的。都是返回指定对象的原型（即内部的 [[Prototype]] 属性的值）。该方法只能接受一个参数，target：获取原型的目标对象。注意得是如果 target 不是对象的话，会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyObj</span> </span>&#123;&#125;</span><br><span class="line"><span class="keyword">let</span> myObj = <span class="keyword">new</span> MyObj();</span><br><span class="line"><span class="built_in">Object</span>.getPrototypeOf(myObj) === MyObj.prototype; <span class="comment">// true</span></span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.getPrototypeOf(myObj) === MyObj.prototype; <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-8、Reflect-has"><a href="#2-8、Reflect-has" class="headerlink" title="2.8、Reflect.has()"></a>2.8、Reflect.has()</h3><p>作用与 in 操作符 相同。该方法接受两个参数，target：目标对象。propertyKey：属性名，需要检查目标对象是否存在此属性。注意，如果目标对象并非 Object 类型，则会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;</span><br><span class="line">  value: <span class="string">"18"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="string">"value"</span> <span class="keyword">in</span> obj; <span class="comment">// true</span></span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.has(obj, <span class="string">"value"</span>); <span class="comment">// ture</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-9、Reflect-isExtensible"><a href="#2-9、Reflect-isExtensible" class="headerlink" title="2.9、Reflect.isExtensible()"></a>2.9、Reflect.isExtensible()</h3><p>判断一个对象是否可扩展 （即是否能够添加新的属性）。与它 Object.isExtensible() 方法相似，但有一些不同，如果该方法的第一个参数不是一个对象（原始值），那么将会报错。对于 Object.isExtensible()，非对象的第一个参数会被强制转换为一个对象。该方法只接受一个参数，target：检查是否可扩展的目标对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.isExtensible(obj); <span class="comment">// true</span></span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.isExtensible(obj); <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-10、Reflect-ownKeys"><a href="#2-10、Reflect-ownKeys" class="headerlink" title="2.10、Reflect.ownKeys()"></a>2.10、Reflect.ownKeys()</h3><p>返回一个由目标对象自身的属性键组成的数组。该方法接受一个参数，target：获取自身属性键的目标对象。返回一个由目标对象的自身属性键组成的 Array。返回值等同于 Object.getOwnPropertyNames(target).concat(Object.getOwnPropertySymbols(target))。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> myObject = &#123;</span><br><span class="line">  foo: <span class="number">1</span>,</span><br><span class="line">  bar: <span class="number">2</span>,</span><br><span class="line">  [<span class="built_in">Symbol</span>.for(<span class="string">"baz"</span>)]: <span class="number">3</span>,</span><br><span class="line">  [<span class="built_in">Symbol</span>.for(<span class="string">"bing"</span>)]: <span class="number">4</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="built_in">Object</span>.getOwnPropertyNames(myObject).concat(</span><br><span class="line">  <span class="built_in">Object</span>.getOwnPropertySymbols(myObject)</span><br><span class="line">);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.ownKeys(myObject); <span class="comment">// ['foo', 'bar', Symbol(baz), Symbol(bing)]</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-11、Reflect-preventExtensions"><a href="#2-11、Reflect-preventExtensions" class="headerlink" title="2.11、Reflect.preventExtensions()"></a>2.11、Reflect.preventExtensions()</h3><p>该方法阻止新属性添加到对象 (例如：防止将来对对象的扩展被添加到对象中)。该方法与 Object.preventExtensions()相似，但有一些不同点。该方法接受一个参数，target：阻止扩展的目标对象。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> obj = &#123;&#125;;</span><br><span class="line"><span class="built_in">Object</span>.preventExtensions(obj); <span class="comment">// Object &#123;&#125;</span></span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.preventExtensions(obj); <span class="comment">// true</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-12、Reflect-set"><a href="#2-12、Reflect-set" class="headerlink" title="2.12、Reflect.set()"></a>2.12、Reflect.set()</h3><p>该方法设置 target 对象的 name 属性等于 value。该方法接受四个参数，target：设置属性的目标对象。propertyKey：设置的属性的名称。value：设置的值。receiver：如果遇到 setter，receiver 则为 setter 调用时的 this 值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"Jack"</span>,</span><br><span class="line">&#125;;</span><br><span class="line">person.name; <span class="comment">// 'Jack'</span></span><br><span class="line"><span class="built_in">Reflect</span>.set(person, <span class="string">"name"</span>, <span class="string">"Luci"</span>);</span><br><span class="line">person.name; <span class="comment">// 'Luci'</span></span><br><span class="line"><span class="comment">// 当有setter函数时</span></span><br><span class="line"><span class="keyword">let</span> person = &#123;</span><br><span class="line">  name: <span class="string">"Jack"</span>,</span><br><span class="line">  <span class="keyword">set</span> foo(value) &#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">this</span>.name = value);</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">let</span> receiverObject = &#123;</span><br><span class="line">  name: <span class="string">"Luci"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="built_in">Reflect</span>.set(person, <span class="string">"foo"</span>, <span class="string">"Jhon"</span>, receiverObject);</span><br><span class="line">receiverObject.name; <span class="comment">// Jhon</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-13、Reflect-setPrototypeOf"><a href="#2-13、Reflect-setPrototypeOf" class="headerlink" title="2.13、Reflect.setPrototypeOf()"></a>2.13、Reflect.setPrototypeOf()</h3><p>该方法与 Object.setPrototypeOf() 方法是一样的。它可设置对象的原型（即内部的 [[Prototype]] 属性）为另一个对象或 null，如果操作成功返回 true，否则返回 false。该方法接受两个参数，target：设置原型的目标对象。prototype：对象的新原型（一个对象或 null）。如果 target 不是对象的话将会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> myObj = &#123;&#125;;</span><br><span class="line"></span><br><span class="line"><span class="built_in">Object</span>.setPrototypeOf(myObj, <span class="built_in">Array</span>.prototype);</span><br><span class="line"><span class="comment">// 等价于</span></span><br><span class="line"><span class="built_in">Reflect</span>.setPrototypeOf(myObj, <span class="built_in">Array</span>.prototype);</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://es6.ruanyifeng.com/#docs/reflect" target="_blank" rel="noopener">阮一峰：ECMAScript 6 入门——Reflect</a></p>
+
+            
+
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/ES6/" rel="tag">ES6</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    data-tooltip="Proxy和defineProperty"
+                    aria-label="下一篇: Proxy和defineProperty"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Share this post"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Back to top">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2020 TomatoMan. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a
+                        class="post-action-btn btn btn--disabled"
+                        aria-hidden="true"
+                    >
+                        
+                        <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                    </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                <a
+                    class="post-action-btn btn btn--default tooltip--top"
+                    href="/2020/08/04/Proxy%E5%92%8CdefineProperty/"
+                    data-tooltip="Proxy和defineProperty"
+                    aria-label="下一篇: Proxy和defineProperty"
+                >
+                    
+                        <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a
+                class="post-action-btn btn btn--default btn-open-shareoptions"
+                href="#btn-open-shareoptions"
+                aria-label="Share this post"
+            >
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                    title="分享到 Facebook"
+                    aria-label="分享到 Facebook"
+                >
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                    title="分享到 Twitter"
+                    aria-label="分享到 Twitter"
+                >
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a
+                    class="post-action-btn btn btn--default"
+                    target="new" href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                    title="分享到 Google+"
+                    aria-label="分享到 Google+"
+                >
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Back to top">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                
+    <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+        <i id="btn-close-shareoptions" class="fa fa-times"></i>
+        <ul class="share-options">
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://www.facebook.com/sharer/sharer.php?u=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                        aria-label="分享到 Facebook"
+                    >
+                        <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://twitter.com/intent/tweet?text=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                        aria-label="分享到 Twitter"
+                    >
+                        <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                    </a>
+                </li>
+            
+                
+                
+                <li class="share-option">
+                    <a
+                        class="share-option-btn"
+                        target="new"
+                        href="https://plus.google.com/share?url=https://tomatoesman.github.io/2020/08/04/Reflect/"
+                        aria-label="分享到 Google+"
+                    >
+                        <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                    </a>
+                </li>
+            
+        </ul>
+    </div>
+
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/author.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">TomatoMan</h4>
+        
+            <div id="about-card-bio"><p>author.bio</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>author.job</p>
+
+            </div>
+        
+        
+    </div>
+</div>
+
+        
+            <div id="algolia-search-modal" class="modal-container">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="close-button"><i class="fa fa-times"></i></span>
+            <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+                <span class="searchby-algolia-text text-color-light text-small">by</span>
+                <img class="searchby-algolia-logo" src="/assets/images/logo-algolia-nebula-blue-full.svg">
+            </a>
+            <i class="search-icon fa fa-search"></i>
+            <form id="algolia-search-form">
+                <input type="text" id="algolia-search-input" name="search"
+                    class="form-control input--large search-input" placeholder="Search "
+                    />
+            </form>
+        </div>
+        <div class="modal-body">
+            <div class="no-result text-color-light text-center">没有找到文章</div>
+            <div class="results">
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/08/js%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/"
+                            aria-label=": js基础类型和引用类型"
+                        >
+                            <h3 class="media-heading">js基础类型和引用类型</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月8日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>开始第一篇，那我们从 js 最基础的讲起，基础类型和引用类型</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2/"
+                            aria-label=": 类型转换"
+                        >
+                            <h3 class="media-heading">类型转换</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、显示类型转换"><a href="#1、显示类型转换" class="headerlink" title="1、显示类型转换"></a>1、显示类型转换</h2><p>显示类型转换顾名思义就是用特有的方法对类型进行转换<br>显示类型转换的方式只有三种：</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/17/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E5%92%8C%E6%B5%85%E6%8B%B7%E8%B4%9D/"
+                            aria-label=": 深拷贝和浅拷贝"
+                        >
+                            <h3 class="media-heading">深拷贝和浅拷贝</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月17日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>这属于面试的高频问题了，深浅拷贝的问题只针对于引用数据类型，对于基本数据类型并没有这样的问题。<br>为什么引用数据类型会出现这样的问题？<br>第一篇 js 数据类型中有提到，引用数据类型存放在堆中，栈中存放的是该引用类型的地址，以便能通过地址快速找到该引用数据。<br>所以在拷贝时就会出现只拷贝引用类型的地址和再在堆中开辟一个新的内存空间的两种拷贝方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%8E%9F%E5%9E%8B%E9%93%BE/"
+                            aria-label=": 原型与原型链"
+                        >
+                            <h3 class="media-heading">原型与原型链</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><h2 id="1、创建对象"><a href="#1、创建对象" class="headerlink" title="1、创建对象"></a>1、创建对象</h2></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/20/%E7%BB%A7%E6%89%BF/"
+                            aria-label=": 继承"
+                        >
+                            <h3 class="media-heading">继承</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月20日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>JS 是一门面向对象的语言，面向对象的三个特性：封装、继承、多态。虽然 JS 没有多态，但是继承还是有的，但是 JS 的继承只支持实现继承，实现的方式就是通过原型链。原型链我们上篇已经讲过了，所以本篇主要 JS 中几种继承的方式。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/04/21/new%E5%85%B3%E9%94%AE%E8%AF%8D/"
+                            aria-label=": new关键词"
+                        >
+                            <h3 class="media-heading">new关键词</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年4月21日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>大部分面试的时候，面试官先已原型链铺路，随后就会问你 new 关键词都做了些什么？也是为了下一个继承问题再次铺路！<br>那这篇文章我们就来讲讲这个 new！<br>我们通常在什么地方能看到它，在创建实例的时候，new 后面加上一个构造函数，就是创建这个构造函数的实例。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E4%BD%9C%E7%94%A8%E5%9F%9F/"
+                            aria-label=": 作用域"
+                        >
+                            <h3 class="media-heading">作用域</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>何为作用域，查找度娘百科中是这么定义的：</p>
+<p>作用域（scope），程序设计概念，通常来说，一段程序代码中所用到的名字并不总是有效/可用的，而限定这个名字的可用性的代码范围就是这个名字的作用域。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/05/29/%E6%89%A7%E8%A1%8C%E4%B8%8A%E4%B8%8B%E6%96%87/"
+                            aria-label=": 执行上下文"
+                        >
+                            <h3 class="media-heading">执行上下文</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年5月29日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>上篇介绍完 JS 的作用域，那接下来的几篇就要讲讲跟作用域相关的内容了。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <img class="media-image" src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=11468326,3073197074&amp;fm=26&amp;gp=0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/12/%E9%97%AD%E5%8C%85/"
+                            aria-label=": 闭包"
+                        >
+                            <h3 class="media-heading">闭包</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月12日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>根据《高程》中所讲：闭包是指有权访问另一个函数作用域中的变量的函数。<br>《Javascript 权威指南》中指出，从技术角度讲，所有的 javascript 函数都是闭包。<br>闭包，之前感觉很神秘，今天我们来揭开它的面纱，看看究竟干了什么！</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+                <div class="media">
+                    
+                    <div class="media-left">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <img class="media-image" src="https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1593095782575&amp;di=0f02fa07eb8c80304015e32141a07c1f&amp;imgtype=0&amp;src=http%3A%2F%2Fimg0.imgtn.bdimg.com%2Fit%2Fu%3D1919037390%2C2349900337%26fm%3D214%26gp%3D0.jpg" width="90" height="90"/>
+                        </a>
+                    </div>
+                    
+                    <div class="media-body">
+                        <a
+                            class="link-unstyled"
+                            href="https://tomatoesman.github.io/2020/06/18/call%E3%80%81apply%E5%92%8Cbind/"
+                            aria-label=": call、apply和bind"
+                        >
+                            <h3 class="media-heading">call、apply和bind</h3>
+                        </a>
+                        <span class="media-meta">
+                            <span class="media-date text-small">
+                                
+                                    2020年6月18日
+                                
+                            </span>
+                        </span>
+                        <div class="media-content hide-xs font-merryweather"><p>call、apply 和 bind 都是对 this 值得改变，那三者有什么不同呢？本篇通过模拟三者代码的形式来讲解。</p></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                    <hr>
+                </div>
+                
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="results-count text-medium"
+                data-message-zero="没有找到文章"
+                data-message-one="找到 1 篇文章"
+                data-message-other="找到 {n} 篇文章">
+                找到 19 篇文章
+            </p>
+        </div>
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+
+<script src="/assets/js/script-gcbh7npmnxauwybwqqoitmia9ec0wihwvsb9n2qirts6y3uiazx7dlwaanx3.min.js"></script>
+
+<!--SCRIPTS END-->
+
+
+    
+
+
+
+    
+<script src="/assets/js/moment-with-locales.js"></script>
+
+    
+<script src="/assets/js/algoliasearch.js"></script>
+
+    <script>
+      var algoliaClient = algoliasearch('2ILBT3HBZ2', '2f34a1f86e95da45573cd221c686a072');
+      var algoliaIndex = algoliaClient.initIndex('my-hexo-blog');
+    </script>
+
+
+    </body>
+</html>
